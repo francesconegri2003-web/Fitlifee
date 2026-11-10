@@ -837,7 +837,7 @@ document.addEventListener('click',e=>{
   try{const r=f(el.dataset,el,e);if(r&&r.catch)r.catch(err=>{console.error(err);toast('Qualcosa non ha funzionato')})}catch(err){console.error(err);toast('Qualcosa non ha funzionato')}
 });
 document.addEventListener('change',async e=>{const t=e.target;if(!t||t.id!=='avfile'||!t.files||!t.files[0])return;try{const d=await photoFromFile(t.files[0]);S.d.av=Object.assign({},AV0,S.d.av,{photo:d});refreshAvEd()}catch(err){console.error(err);toast('Non riesco a leggere la foto')}t.value=''});
-document.addEventListener('input',e=>{const t=e.target;if(!t.dataset)return;if(t.dataset.b)setPath(S,t.dataset.b,t.type==='checkbox'?t.checked:t.value);if(t.dataset.ev&&ACT[t.dataset.ev])ACT[t.dataset.ev](t.dataset,t,e)});
+document.addEventListener('input',e=>{const t=e.target;if(!t.dataset)return;if(t.dataset.b)setPath(S,t.dataset.b,t.type==='checkbox'?t.checked:t.value);if(t.dataset.ev&&ACT[t.dataset.ev])ACT[t.dataset.ev](t.dataset,t,e);if(t.dataset.b&&t.dataset.b.indexOf('d.items.')===0&&typeof recalcMeal==='function')recalcMeal()});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.enter&&e.target.tagName!=='TEXTAREA'){e.preventDefault();ACT[e.target.dataset.enter](e.target.dataset,e.target,e)}});
 Object.assign(ACT,{
   tab:d=>go(d.t),closeSheet:()=>closeSheet(),sheetBack:()=>{const b=S.sheet&&S.sheet.back;if(b)b();else closeSheet()},
@@ -1316,7 +1316,7 @@ function viewShop(){
   const left=S.shop.filter(i=>!i.done),done=S.shop.filter(i=>i.done);
   const groups=SHOPCATS.map(([k,n])=>{const l=S.shop.filter(i=>(i.cat||'other')===k).sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.at||0)-(b.at||0));return [k,n,l]}).filter(g=>g[2].length);
   return `${pageHead('Lista condivisa','Spesa')}
-  <div class="card col" style="gap:8px"><div class="shopadd"><input id="shopN" data-enter="shopadd" placeholder="Aggiungi prodotto…" maxlength="60" autocomplete="off" enterkeyhint="done" aria-label="Prodotto"><input id="shopQ" data-enter="shopadd" placeholder="Qtà" maxlength="14" aria-label="Quantità"><button class="ibtn" style="width:52px;height:46px;background:var(--lime);color:var(--lime-ink)" data-act="shopadd" aria-label="Aggiungi">${ic('plus',22)}</button></div>
+  <div class="card col" style="gap:8px">${foodDatalist()}<div class="shopadd"><input id="shopN" list="foodlist" data-enter="shopadd" placeholder="Aggiungi prodotto…" maxlength="60" autocomplete="off" enterkeyhint="done" aria-label="Prodotto"><input id="shopQ" data-enter="shopadd" placeholder="Qtà" maxlength="14" aria-label="Quantità"><button class="ibtn" style="width:52px;height:46px;background:var(--lime);color:var(--lime-ink)" data-act="shopadd" aria-label="Aggiungi">${ic('plus',22)}</button></div>
   <select id="shopC" aria-label="Categoria"><option value="">Categoria automatica</option>${SHOPCATS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
   <div class="row" style="margin:14px 2px 0"><b class="sp">${left.length} da comprare${done.length?' · '+done.length+' presi':''}</b>${done.length?`<button class="btn ghost sm" data-act="shopclear" data-confirm="1">Rimuovi acquistati</button>`:''}</div>
   ${groups.length?groups.map(([k,n,l])=>`<div class="cathead">${n}<span class="cnt">${l.filter(i=>!i.done).length}</span></div><div class="list">${l.map(shopRow).join('')}</div>`).join(''):`<div class="empty" style="margin-top:14px"><b>La lista è vuota</b>Aggiungi il primo prodotto: tutti gli amici lo vedono subito sul proprio telefono.</div>`}`;
@@ -1342,7 +1342,7 @@ async function addIngredients(list){
   return {add,mrg};
 }
 Object.assign(ACT,{
-  shopadd:async()=>{const n=val('shopN').trim();if(!n)return toast('Scrivi il nome del prodotto');const q=val('shopQ').trim(),c=val('shopC')||guessCat(n);if(await W(C('shop').add({n,q,cat:c,note:'',by:uid,at:Date.now(),done:false}))){$('#shopN').value='';$('#shopQ').value='';await postFeed('shop',n);$('#shopN').focus()}},
+  shopadd:async()=>{const n=val('shopN').trim();if(!n)return toast('Scrivi il nome del prodotto');const q=val('shopQ').trim(),c=val('shopC')||foodShopCat(n)||guessCat(n);if(await W(C('shop').add({n,q,cat:c,note:'',by:uid,at:Date.now(),done:false}))){$('#shopN').value='';$('#shopQ').value='';await postFeed('shop',n);$('#shopN').focus()}},
   shoptog:d=>{const i=S.shop.find(x=>x.id===d.id);if(!i)return;return W(C('shop').doc(d.id).update(i.done?{done:false,doneBy:'',doneAt:0}:{done:true,doneBy:uid,doneAt:Date.now()}))},
   shopopen:d=>openShopItem(d.id),
   shopsave:async()=>{const D=S.d;if(!(D.n||'').trim())return toast('Il nome non può essere vuoto');if(await W(C('shop').doc(D.id).update({n:D.n.trim(),q:(D.q||'').trim(),cat:D.cat,note:(D.note||'').trim()}))){closeSheet();toast('Prodotto aggiornato',1)}},
@@ -1383,11 +1383,11 @@ function openMeal(dk,s){
 function mealEditor(head){
   const D=S.d,{dk,s}=S.mk,ok=mealOk(dayMeals(S.viewMenu.doc,dk)[s]);
   head=head||sheetHead(`${SLOTS.find(x=>x[0]===s)[1]} · ${DAYS[DK.indexOf(dk)]}`);
-  openSheet(head+`<div class="col"><label class="f">Cosa mangi<input data-b="d.t" value="${esc(D.t)}" maxlength="80" placeholder="Es. Pasta al pomodoro e petto di pollo"></label>
-  <div class="kicker">Ingredienti e quantità</div>${D.items.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 74px 40px;gap:6px"><input data-b="d.items.${i}.n" value="${esc(it.n)}" placeholder="Ingrediente" aria-label="Ingrediente ${i+1}"><input data-b="d.items.${i}.q" value="${esc(it.q)}" inputmode="decimal" placeholder="Qtà" aria-label="Quantità"><select data-b="d.items.${i}.u" aria-label="Unità">${['g','ml','pz','kg','l','cucchiai'].map(u=>`<option ${it.u===u?'selected':''}>${u}</option>`).join('')}</select><button class="ibtn sm" style="height:46px" data-act="mitdel" data-i="${i}" aria-label="Rimuovi ingrediente">${ic('x',16)}</button></div>`).join('')}
+  openSheet(head+foodDatalist()+`<div class="col"><label class="f">Cosa mangi<input data-b="d.t" value="${esc(D.t)}" maxlength="80" placeholder="Es. Pasta al pomodoro e petto di pollo"></label>
+  <div class="kicker">Ingredienti e quantità</div>${D.items.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 74px 40px;gap:6px"><input data-b="d.items.${i}.n" list="foodlist" autocomplete="off" value="${esc(it.n)}" placeholder="Cerca o scrivi…" aria-label="Ingrediente ${i+1}"><input data-b="d.items.${i}.q" value="${esc(it.q)}" inputmode="decimal" placeholder="Qtà" aria-label="Quantità"><select data-b="d.items.${i}.u" aria-label="Unità">${['g','ml','pz','kg','l','cucchiai'].map(u=>`<option ${it.u===u?'selected':''}>${u}</option>`).join('')}</select><button class="ibtn sm" style="height:46px" data-act="mitdel" data-i="${i}" aria-label="Rimuovi ingrediente">${ic('x',16)}</button></div>`).join('')}
   <button class="btn ghost sm" style="align-self:flex-start" data-act="mitadd">${ic('plus',15)}Ingrediente</button>
-  <div class="kicker">Valori nutrizionali (facoltativi)</div><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><label class="f">kcal<input data-b="d.kcal" value="${esc(D.kcal)}" inputmode="decimal"></label><label class="f">Prot.<input data-b="d.p" value="${esc(D.p)}" inputmode="decimal"></label><label class="f">Carb.<input data-b="d.c" value="${esc(D.c)}" inputmode="decimal"></label><label class="f">Grassi<input data-b="d.f" value="${esc(D.f)}" inputmode="decimal"></label></div>
-  <button class="btn block" data-act="mealsave">Salva pasto</button>${ok?`<button class="btn ghost block" data-act="mealshop">${ic('cart',18)}Aggiungi ingredienti alla spesa</button><div class="kicker">Commenti</div>${threadBox(mealTarget(dk,s))}<button class="btn danger block" data-act="mealdel" data-confirm="1">Elimina pasto</button>`:''}</div>`);
+  <div class="kicker">Valori nutrizionali</div><p class="tiny mute" style="margin-top:-6px">Si calcolano da soli se scegli gli ingredienti dalla lista e li indichi in g, kg o ml. Puoi anche scriverli a mano.</p><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><label class="f">kcal<input data-b="d.kcal" value="${esc(D.kcal)}" inputmode="decimal"></label><label class="f">Prot.<input data-b="d.p" value="${esc(D.p)}" inputmode="decimal"></label><label class="f">Carb.<input data-b="d.c" value="${esc(D.c)}" inputmode="decimal"></label><label class="f">Grassi<input data-b="d.f" value="${esc(D.f)}" inputmode="decimal"></label></div>
+  <p id="mnote" class="tiny lime"></p><button class="btn block" data-act="mealsave">Salva pasto</button>${ok?`<button class="btn ghost block" data-act="mealshop">${ic('cart',18)}Aggiungi ingredienti alla spesa</button><div class="kicker">Commenti</div>${threadBox(mealTarget(dk,s))}<button class="btn danger block" data-act="mealdel" data-confirm="1">Elimina pasto</button>`:''}</div>`);
 }
 const cleanMeal=D=>({t:(D.t||'').trim(),items:(D.items||[]).filter(i=>(i.n||'').trim()).map(i=>({n:i.n.trim(),q:String(i.q||'').trim(),u:i.u||'g'})),kcal:numv(D.kcal)||0,p:numv(D.p)||0,c:numv(D.c)||0,f:numv(D.f)||0});
 const myWeekRef=wk=>C('menus').doc(uid).collection('weeks').doc(wk);
@@ -1744,8 +1744,28 @@ Object.assign(ACT,{
   fcat:d=>{S.ui.fcat=d.c;render()},
   food:d=>{const i=+d.i;openSheet(sheetHead(esc(FOODS[i].n))+'<div id="fbody">'+foodSheet(i,100)+'</div>')},
   fgr:(d,t)=>{const g=Math.max(0,numv(t.value)||0),f=$('#fbody');if(!f)return;const keep=t.selectionStart;f.innerHTML=foodSheet(+d.i,g===0&&!t.value?0:g);const n=$('#fgr');if(n){n.value=t.value;n.focus();try{n.setSelectionRange(keep,keep)}catch(e){}}},
-  foodshop:async d=>{const f=FOODS[+d.i];if(!await W(C('shop').add({n:f.n,q:'',cat:guessCat(f.n),note:'',by:uid,at:Date.now(),done:false})))return;toast('Aggiunto alla spesa',1)}
+  foodshop:async d=>{const f=FOODS[+d.i];if(!await W(C('shop').add({n:f.n,q:'',cat:foodShopCat(f.n)||guessCat(f.n),note:'',by:uid,at:Date.now(),done:false})))return;toast('Aggiunto alla spesa',1)}
 });
+
+/* ---------- collegamento al menu: calcolo automatico dei valori del pasto ---------- */
+let _fm=null;
+function foodMaps(){if(_fm)return _fm;const ex=new Map(),base=new Map();FOODS.forEach(f=>{ex.set(fnorm(f.n),f);const b=fnorm(f.n.replace(/\s*\([^)]*\)\s*$/,''));if(b!==fnorm(f.n))base.set(b,base.has(b)?null:f)});return _fm={ex,base}}
+function foodMatch(name){const k=fnorm(name).trim(),M=foodMaps();return M.ex.get(k)||M.base.get(k)||null}
+const LIQ=['Bevande','Latte e yogurt','Olii, condimenti e salse'];
+function toGrams(f,q,u){if(u==='g')return q;if(u==='kg')return q*1000;if((u==='ml'||u==='l')&&LIQ.includes(f.c))return u==='l'?q*1000:q;return null}
+function mealCalc(items){let k=0,p=0,h=0,g=0,n=0;const miss=[];(items||[]).forEach(it=>{const nm=(it.n||'').trim();if(!nm)return;const f=foodMatch(nm),q=numv(it.q),gr=f&&q!=null?toGrams(f,q,it.u||'g'):null;if(gr==null){miss.push(nm);return}const m=gr/100;k+=f.k*m;p+=f.p*m;h+=f.h*m;g+=f.g*m;n++});return {k,p,h,g,n,miss}}
+const r1=x=>Math.round(x*10)/10;
+function recalcMeal(){
+  if(!S.d||!S.d.items)return;const r=mealCalc(S.d.items),note=$('#mnote');
+  if(r.n>0){S.d.kcal=Math.round(r.k);S.d.p=r1(r.p);S.d.c=r1(r.h);S.d.f=r1(r.g);
+    [['d.kcal',S.d.kcal],['d.p',S.d.p],['d.c',S.d.c],['d.f',S.d.f]].forEach(([b,v])=>{const e=document.querySelector('[data-b="'+b+'"]');if(e)e.value=v})}
+  if(note)note.textContent=r.n>0?('Calcolato da '+r.n+(r.n===1?' ingrediente':' ingredienti')+(r.miss.length?' · non calcolati: '+r.miss.join(', '):'')):'';
+}
+let _dl=null;
+function foodDatalist(){return _dl||(_dl='<datalist id="foodlist">'+FOODS.map(f=>'<option value="'+esc(f.n)+'"></option>').join('')+'</datalist>')}
+
+const FSHOP={'Cereali e pane':'pasta','Legumi e derivati':'pasta','Verdure':'veg','Frutta':'veg','Frutta secca e semi':'snack','Carne e salumi':'meat','Pesce e frutti di mare':'fish','Uova':'dairy','Latte e yogurt':'dairy','Formaggi':'dairy','Olii, condimenti e salse':'other','Dolci e snack':'snack','Bevande':'drink'};
+function foodShopCat(name){const f=foodMatch(name);return f?(FSHOP[f.c]||null):null}
 /* ===== AVVIO ===== */
 let started=false;
 async function refreshStatus(){const r=await sb.rpc('my_status');if(r.error||!r.data){console.error(r.error);S.fatal='db';return}S.status=r.data;S.canEdit=!!r.data.admin}
