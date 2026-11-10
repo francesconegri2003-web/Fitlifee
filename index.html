@@ -565,7 +565,11 @@ const AV={skin:['#f6d3b3','#e9b78e','#cf9266','#a06a42','#6e452b'],hair:['#14110
  hairN:['Corti','Rasati','Lunghi','Coda','Ricci','Cresta','Calvo'],eyesN:['Neutri','Sorriso','Decisi','Stanchi'],mouthN:['Sorriso','Grin','Neutra','Aperta'],outN:['Canotta','T-shirt','Felpa','Compressione'],accN:['Nessuno','Fascia','Occhiali','Cappellino','Cuffie','Barba']};
 const AV0={skin:1,hair:0,hc:1,eyes:1,mouth:0,out:0,cloth:1,acc:0,bg:5};
 function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const f=p<0?0:255,t=Math.abs(p);r=Math.round((f-r)*t+r);g=Math.round((f-g)*t+g);b=Math.round((f-b)*t+b);return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}
+const PH=new Map(),PHRE=/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
+function photoSrc(d){let u=PH.get(d);if(!u){try{const b=atob(d.split(',')[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);u=URL.createObjectURL(new Blob([a],{type:'image/jpeg'}))}catch(e){u=d}PH.set(d,u)}return u}
+function photoFromFile(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file),im=new Image();im.onload=()=>{try{const s=Math.min(im.naturalWidth,im.naturalHeight),sx=(im.naturalWidth-s)/2,sy=(im.naturalHeight-s)/2,cv=document.createElement('canvas');cv.width=cv.height=160;cv.getContext('2d').drawImage(im,sx,sy,s,s,0,0,160,160);let q=.8,d=cv.toDataURL('image/jpeg',q);while(d.length>20000&&q>.4){q-=.1;d=cv.toDataURL('image/jpeg',q)}URL.revokeObjectURL(url);res(d)}catch(e){rej(e)}};im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};im.src=url})}
 function avatar(c,size=44){
+  if(c&&typeof c.photo==='string'&&PHRE.test(c.photo))return `<img class="av" src="${photoSrc(c.photo)}" width="${size}" height="${size}" alt="Avatar" style="object-fit:cover">`;
   c=Object.assign({},AV0,c||{});
   const sk=AV.skin[c.skin]||AV.skin[1],sd=shade(sk,-.15),hc=AV.hair[c.hc]||AV.hair[0],cl=AV.cloth[c.cloth]||AV.cloth[1],bg=AV.bg[c.bg]||AV.bg[0];
   const st=(cl==='#c6f432')?'#10140a':'#c6f432';
@@ -606,7 +610,7 @@ function randAv(){const r=n=>Math.floor(Math.random()*n);return {skin:r(5),hair:
 const AVROWS=[['Pelle','skin','sw',AV.skin],['Capelli','hair','opt',AV.hairN],['Colore capelli','hc','sw',AV.hair],['Occhi','eyes','opt',AV.eyesN],['Bocca','mouth','opt',AV.mouthN],['Abbigliamento','out','opt',AV.outN],['Colore maglia','cloth','sw',AV.cloth],['Accessori','acc','opt',AV.accN],['Sfondo','bg','sw',AV.bg]];
 function avEdInner(){
   const c=Object.assign({},AV0,S.d.av||{});
-  return `<div class="row" style="justify-content:center;margin-bottom:12px">${avatar(c,112)}<button class="btn ghost sm" data-act="avrand">${ic('bolt',16)}Casuale</button></div>`+
+  return `<div class="row" style="justify-content:center;margin-bottom:12px">${avatar(c,112)}<button class="btn ghost sm" data-act="avrand">${ic('bolt',16)}Casuale</button></div><div class="row" style="justify-content:center;margin-bottom:14px;gap:8px"><label class="btn sm" style="cursor:pointer">${ic('plus',16)}${c.photo?'Cambia foto':'Usa una foto'}<input type="file" id="avfile" accept="image/*" hidden></label>${c.photo?`<button class="btn ghost sm" data-act="avnophoto">Rimuovi foto</button>`:''}</div>`+
    AVROWS.map(([t,k,type,arr])=>`<div style="margin-bottom:12px"><div class="kicker" style="margin-bottom:6px">${t}</div><div class="opt">${arr.map((v,i)=>type==='sw'?`<button class="swatch ${c[k]===i?'on':''}" style="background:${v}" data-act="avset" data-k="${k}" data-v="${i}" aria-label="${t} ${i+1}"></button>`:`<button class="${c[k]===i?'on':''}" data-act="avset" data-k="${k}" data-v="${i}">${v}</button>`).join('')}</div></div>`).join('');
 }
 const avEditor=()=>`<div id="aved">${avEdInner()}</div>`;
@@ -809,7 +813,7 @@ function draw(){
   $('#nav').hidden=false;
   const T=S.ui.tab,P=S.ui.page;
   let h;
-  if(P==='sfide')h=viewSfide();else if(P==='gruppo')h=viewGruppo();
+  if(P==='sfide')h=viewSfide();else if(P==='gruppo')h=viewGruppo();else if(P==='alimenti')h=viewFood();
   else h=({home:viewHome,work:viewWork,shop:viewShop,menu:viewMenu,me:viewProfile}[T]||viewHome)();
   const fa=document.activeElement,keep=fa&&fa.id&&fa.closest&&fa.closest('#view')?{id:fa.id,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   $('#view').innerHTML=h;
@@ -832,12 +836,13 @@ document.addEventListener('click',e=>{
   const f=ACT[el.dataset.act];if(!f)return;e.preventDefault();
   try{const r=f(el.dataset,el,e);if(r&&r.catch)r.catch(err=>{console.error(err);toast('Qualcosa non ha funzionato')})}catch(err){console.error(err);toast('Qualcosa non ha funzionato')}
 });
+document.addEventListener('change',async e=>{const t=e.target;if(!t||t.id!=='avfile'||!t.files||!t.files[0])return;try{const d=await photoFromFile(t.files[0]);S.d.av=Object.assign({},AV0,S.d.av,{photo:d});refreshAvEd()}catch(err){console.error(err);toast('Non riesco a leggere la foto')}t.value=''});
 document.addEventListener('input',e=>{const t=e.target;if(!t.dataset)return;if(t.dataset.b)setPath(S,t.dataset.b,t.type==='checkbox'?t.checked:t.value);if(t.dataset.ev&&ACT[t.dataset.ev])ACT[t.dataset.ev](t.dataset,t,e)});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.enter&&e.target.tagName!=='TEXTAREA'){e.preventDefault();ACT[e.target.dataset.enter](e.target.dataset,e.target,e)}});
 Object.assign(ACT,{
   tab:d=>go(d.t),closeSheet:()=>closeSheet(),sheetBack:()=>{const b=S.sheet&&S.sheet.back;if(b)b();else closeSheet()},
   back:()=>{S.ui.page=null;window.scrollTo(0,0);render()},page:d=>page(d.p),
-  avset:d=>{S.d.av=Object.assign({},AV0,S.d.av);S.d.av[d.k]=+d.v;refreshAvEd()},avrand:()=>{S.d.av=randAv();refreshAvEd()},
+  avset:d=>{S.d.av=Object.assign({},AV0,S.d.av);S.d.av[d.k]=+d.v;refreshAvEd()},avrand:()=>{S.d.av=Object.assign(randAv(),S.d.av&&S.d.av.photo?{photo:S.d.av.photo}:{});refreshAvEd()},avnophoto:()=>{const a=Object.assign({},S.d.av);delete a.photo;S.d.av=a;refreshAvEd()},
   authmode:()=>{S.authMode=S.authMode==='up'?'in':'up';S.authMsg='';render()},
   authgo:async()=>{
     const email=(S.d.email||'').trim(),pw=S.d.pw||'';if(!email||pw.length<6){S.authMsg='Inserisci email e una password di almeno 6 caratteri.';return render()}
@@ -1355,6 +1360,7 @@ function viewMenu(){
   const ppl=memberIds().sort((a,b)=>a===uid?-1:b===uid?1:nick(a).localeCompare(nick(b)));
   const hasAny=doc&&DK.some(k=>SLOTS.some(([s])=>mealOk(dayMeals(doc,k)[s])));
   return `${pageHead('Calendario alimentare','Menu')}
+  <button class="item" data-act="page" data-p="alimenti" style="margin-bottom:12px">${ic('leaf',20)}<div class="sp"><b>Tabella alimenti</b><div class="tiny mute">Calorie e valori nutrizionali per 100 g</div></div>${ic('right',18)}</button>
   <div class="hscroll" style="margin-bottom:14px">${ppl.map(u=>`<button class="avs ${u===V.u?'me':''}" data-act="menuUser" data-u="${u}">${avatar(prof(u).avatar,48)}<span class="ellip">${u===uid?'Il mio':esc(nick(u))}</span></button>`).join('')}</div>
   <div class="row" style="margin-bottom:12px"><button class="ibtn" data-act="menuWk" data-n="-1" aria-label="Settimana precedente">${ic('left')}</button><div class="sp" style="text-align:center"><div class="disp" style="font-size:22px;font-weight:700">${wkLabel(wk)}</div>${isCur?'<div class="tiny lime">Questa settimana</div>':`<button class="tiny lime" data-act="menuWk" data-n="0">Torna a oggi</button>`}</div><button class="ibtn" data-act="menuWk" data-n="1" aria-label="Settimana successiva">${ic('right')}</button></div>
   ${!own?`<div class="warn" style="margin-bottom:12px;color:var(--text);background:var(--s1);border-color:var(--line)">Stai guardando il menu di <b>${esc(nick(V.u))}</b>. Puoi commentare i pasti.</div>`:''}
@@ -1441,7 +1447,7 @@ Object.assign(ACT,{
     if(m.weight&&m.weight!==S.me.weight){const e={date:todayKey(),kg:m.weight};if(await W(mine('weights').doc(e.date).set(e)))ws=S.weights.filter(x=>x.date!==e.date).concat([e])}
     await publishProfile(m,ws);closeSheet();toast('Profilo aggiornato',1)},
   editav:()=>{S.d={av:Object.assign({},AV0,S.me.avatar)};openSheet(sheetHead('Il tuo avatar')+avEditor()+`<button class="btn block" data-act="saveav">Salva avatar</button>`)},
-  saveav:async()=>{const m=Object.assign({},S.me,{avatar:S.d.av});if(!await W(meDoc().update({avatar:S.d.av})))return;await publishProfile(m);closeSheet();toast('Avatar aggiornato',1)},
+  saveav:async()=>{const m=Object.assign({},S.me,{avatar:S.d.av});if(!await W(meDoc().set(m)))return;await publishProfile(m);closeSheet();toast('Avatar aggiornato',1)},
   vistog:async(d,el)=>{const vis=Object.assign(defVis(),S.me.vis||{});vis[d.k]=!vis[d.k];el.classList.toggle('on',vis[d.k]);const m=Object.assign({},S.me,{vis});if(!await W(meDoc().update({vis})))return;await publishProfile(m);if(d.k==='stats')await publishStats(S.sessions,m)},
   sharedef:(d,el)=>{const v=S.me.shareDefault===false;el.classList.toggle('on',v);return W(meDoc().update({shareDefault:v}))},
   addweight:async()=>{const kg=numv(val('wkg'));if(!kg||kg<20||kg>400)return toast('Inserisci un peso valido');const e={date:todayKey(),kg};if(!await W(mine('weights').doc(e.date).set(e)))return;const ws=S.weights.filter(x=>x.date!==e.date).concat([e]);const m=Object.assign({},S.me,{weight:kg});await W(meDoc().update({weight:kg}));await publishProfile(m,ws);$('#wkg').value='';toast('Peso registrato',1)},
@@ -1479,7 +1485,7 @@ function nutriHTML(){
   <div class="mrow"><div class="mbox"><b style="color:var(--cyan)">${c.pg}g</b><span>Proteine</span></div><div class="mbox"><b style="color:var(--amber)">${c.cg}g</b><span>Carboidrati</span></div><div class="mbox"><b style="color:var(--pink)">${c.fg}g</b><span>Grassi</span></div></div>
   <p class="small mute">Metabolismo basale ${c.bmr} kcal · consumo giornaliero stimato ${c.tdee} kcal · acqua circa ${nf(c.water,1)} L</p>
   ${c.minor?'<p class="small warn">Sei minorenne: ti mostro solo il mantenimento. Per cambiare peso chiedi al medico o a un nutrizionista.</p>':''}${c.floored?'<p class="small warn">Ho alzato il valore al minimo di sicurezza: non scendere sotto questa soglia senza un professionista.</p>':''}
-  <button class="btn ghost" data-act="nutedit">${ic('edit',16)}Modifica dati</button><p class="tiny dim">È una stima basata su una formula standard, non un consiglio medico. Con patologie, gravidanza o disturbi alimentari rivolgiti a un medico o a un nutrizionista. Il calcolo è privato.</p></div>`;
+  <div class="row"><button class="btn ghost sp" data-act="nutedit">${ic('edit',16)}Modifica dati</button><button class="btn ghost sp" data-act="page" data-p="alimenti">${ic('leaf',16)}Alimenti</button></div><p class="tiny dim">È una stima basata su una formula standard, non un consiglio medico. Con patologie, gravidanza o disturbi alimentari rivolgiti a un medico o a un nutrizionista. Il calcolo è privato.</p></div>`;
 }
 function nutSheetBody(){
   const n=S.d.nut,opts=(arr,k,lab)=>`<div class="opt">${arr.map(x=>`<button class="${String(n[k])===String(x[0])?'on':''}" data-act="nset" data-k="${k}" data-v="${x[0]}">${x[1]}${lab&&x[2]?`<br><span class="tiny" style="font-weight:500">${x[2]}</span>`:''}</button>`).join('')}</div>`;
@@ -1494,6 +1500,251 @@ Object.assign(ACT,{
   nutedit:()=>{S.d={nut:Object.assign({sex:'m',act:1.375,goal:'keep',pace:'soft'},S.me&&S.me.nut)};openSheet(sheetHead('Il tuo fabbisogno')+'<div id="nutBody">'+nutSheetBody()+'</div>')},
   nset:d=>{const v=d.k==='act'?+d.v:d.v;S.d.nut[d.k]=v;$('#nutBody').innerHTML=nutSheetBody()},
   nutsave:async()=>{if(!await W(meDoc().update({nut:S.d.nut})))return;closeSheet();toast('Fabbisogno calcolato',1)}
+});
+/* ===== Tabella alimenti: valori per 100 g (kcal | proteine | carboidrati | grassi | fibre) ===== */
+const FOODRAW=`Cereali e pane
+Pasta di semola (cruda)|357|12.5|72|1.5|3
+Pasta di semola (cotta)|158|5.8|31|0.9|1.8
+Pasta integrale (cruda)|340|13|65|2.5|9
+Pasta fresca all'uovo|270|11|50|2.5|2.5
+Riso bianco (crudo)|360|7|80|0.6|1.3
+Riso bianco (cotto)|130|2.7|28|0.3|0.4
+Riso integrale (crudo)|350|7.5|74|2.7|3.5
+Riso basmati (crudo)|350|8|77|0.8|1.5
+Farina 00|340|10|73|1|2.7
+Farina integrale|335|13|60|2.5|10
+Fiocchi d'avena|372|13.5|59|7|10
+Couscous (crudo)|360|12.5|72|1.5|5
+Farro (crudo)|340|15|67|2.5|7
+Orzo perlato (crudo)|335|10|70|1.2|9
+Quinoa (cruda)|368|14|64|6|7
+Polenta (cotta)|70|1.5|15|0.3|1
+Gnocchi di patate|150|3.5|32|0.3|1.5
+Cornflakes|375|7|84|0.9|3
+Muesli|365|10|62|7|8
+Gallette di riso|387|8|81|3|4
+Cracker|430|10|68|13|3
+Fette biscottate|410|11|72|7|4
+Grissini|410|12|70|9|3
+Pane bianco|270|8.5|57|0.7|3
+Pane integrale|245|9|45|2|7
+Pane di segale|250|8.5|48|1.5|6
+Piadina|300|8|47|9|2
+Pizza margherita|270|11|33|10|2
+Cornetto (croissant)|406|8|45|21|2
+Pangrattato|395|13|72|5|4
+Legumi e derivati
+Ceci (secchi)|355|20|47|6|16
+Ceci (cotti)|164|8.9|27.4|2.6|7.6
+Lenticchie (secche)|352|24.6|60|1.1|10.7
+Lenticchie (cotte)|116|9|20|0.4|7.9
+Fagioli borlotti (secchi)|347|21.4|62.6|1.2|15.5
+Fagioli (cotti)|143|9|26|0.7|9
+Piselli freschi|80|5.4|14|0.4|5.7
+Edamame (soia)|121|11.9|8.9|5.2|5.2
+Tofu|76|8|1.9|4.8|0.3
+Seitan|125|24|4|1.5|0.5
+Hummus|166|8|14|9.6|6
+Verdure
+Pomodori|18|0.9|3.9|0.2|1.2
+Passata di pomodoro|24|1.3|4.5|0.2|1.5
+Insalata lattuga|15|1.4|2.9|0.2|1.3
+Rucola|25|2.6|3.7|0.7|1.6
+Radicchio|23|1.4|4.5|0.3|3.1
+Spinaci|23|2.9|3.6|0.4|2.2
+Zucchine|17|1.2|3.1|0.3|1
+Carote|41|0.9|9.6|0.2|2.8
+Broccoli|34|2.8|6.6|0.4|2.6
+Cavolfiore|25|1.9|5|0.3|2
+Cavolo cappuccio|25|1.3|5.8|0.1|2.5
+Peperoni rossi|31|1|6|0.3|2.1
+Melanzane|25|1|5.9|0.2|3
+Cetrioli|15|0.7|3.6|0.1|0.5
+Cipolla|40|1.1|9.3|0.1|1.7
+Aglio|149|6.4|33|0.5|2.1
+Patate|77|2|17|0.1|2.2
+Patate dolci|86|1.6|20|0.1|3
+Patatine fritte (forno)|312|3.4|41|15|3.8
+Funghi champignon|22|3.1|3.3|0.3|1
+Fagiolini|31|1.8|7|0.2|3.4
+Asparagi|20|2.2|3.9|0.1|2.1
+Finocchi|31|1.2|7.3|0.2|3.1
+Zucca|26|1|6.5|0.1|0.5
+Barbabietola|43|1.6|9.6|0.2|2.8
+Sedano|16|0.7|3|0.2|1.6
+Mais dolce (scatola)|80|2.6|16|1.2|2.4
+Olive verdi|145|1|3.8|15.3|3.3
+Frutta
+Mela|52|0.3|13.8|0.2|2.4
+Banana|89|1.1|22.8|0.3|2.6
+Arancia|47|0.9|11.8|0.1|2.4
+Mandarino|53|0.8|13.3|0.3|1.8
+Limone|29|1.1|9.3|0.3|2.8
+Pera|57|0.4|15.2|0.1|3.1
+Pesca|39|0.9|9.5|0.3|1.5
+Albicocche|48|1.4|11.1|0.4|2
+Ciliegie|63|1.1|16|0.2|2.1
+Fragole|32|0.7|7.7|0.3|2
+Mirtilli|57|0.7|14.5|0.3|2.4
+Lamponi|52|1.2|11.9|0.7|6.5
+Uva|69|0.7|18|0.2|0.9
+Kiwi|61|1.1|14.7|0.5|3
+Ananas|50|0.5|13.1|0.1|1.4
+Anguria|30|0.6|7.6|0.2|0.4
+Melone|34|0.8|8.2|0.2|0.9
+Fichi freschi|74|0.8|19.2|0.3|2.9
+Melograno|83|1.7|18.7|1.2|4
+Avocado|160|2|8.5|14.7|6.7
+Datteri secchi|282|2.5|75|0.4|8
+Uvetta|299|3.1|79|0.5|3.7
+Frutta secca e semi
+Mandorle|579|21|22|50|12.5
+Noci|654|15|14|65|6.7
+Nocciole|628|15|17|61|9.7
+Anacardi|553|18|30|44|3.3
+Pistacchi|560|20|28|45|10
+Arachidi|567|26|16|49|8.5
+Pinoli|673|14|13|68|3.7
+Burro di arachidi|588|25|20|50|6
+Tahina|595|17|21|54|9
+Semi di chia|486|17|42|31|34
+Semi di lino|534|18|29|42|27
+Semi di girasole|584|21|20|51|8.6
+Semi di zucca|559|30|11|49|6
+Cocco (rapè)|354|3.3|15|33|9
+Carne e salumi
+Petto di pollo (crudo)|110|23|0|1.5|0
+Coscia di pollo (senza pelle)|120|20|0|4.5|0
+Petto di tacchino|107|24|0|1|0
+Manzo magro (fesa)|120|21|0|3.5|0
+Manzo macinato (15% grassi)|215|18|0|15|0
+Controfiletto di manzo|160|21|0|8|0
+Vitello (magro)|110|20|0|3|0
+Maiale (lombata)|143|21|0|6|0
+Coniglio|136|21|0|5.5|0
+Prosciutto cotto|215|19.5|0.5|15|0
+Prosciutto crudo|270|26|0.3|18|0
+Bresaola|150|32|0.5|2.5|0
+Salame|425|25|1|36|0
+Mortadella|311|15|1|28|0
+Würstel|280|12|2|25|0
+Pancetta|458|15|0|44|0
+Pesce e frutti di mare
+Salmone fresco|208|20|0|13|0
+Salmone affumicato|180|25|0|8.5|0
+Tonno fresco|144|23|0|5|0
+Tonno al naturale (sgocciolato)|110|25|0|1|0
+Tonno sott'olio (sgocciolato)|190|26|0|9|0
+Merluzzo|82|18|0|0.7|0
+Spigola (branzino)|100|19|0|2.5|0
+Orata|100|20|0|2.5|0
+Trota|111|20|0|3.5|0
+Sgombro|205|19|0|14|0
+Sardine fresche|135|19|0|6.5|0
+Platessa|91|19|0|1.2|0
+Gamberi|85|20|0.2|0.5|0
+Calamari|92|15.6|3|1.4|0
+Cozze|86|12|3.7|2.2|0
+Polpo|82|15|2|1|0
+Bastoncini di pesce|200|12|18|9|1
+Uova
+Uovo intero|143|12.6|0.7|9.5|0
+Albume|52|10.9|0.7|0.2|0
+Tuorlo|322|16|3.6|27|0
+Latte e yogurt
+Latte intero|64|3.3|4.9|3.6|0
+Latte parzialmente scremato|46|3.4|5|1.6|0
+Latte scremato|35|3.5|5|0.2|0
+Bevanda di soia|39|3.3|2.5|1.8|0.5
+Bevanda di avena|45|1|6.5|1.5|0.8
+Bevanda di mandorla|24|0.6|3|1.1|0.3
+Yogurt bianco intero|61|3.5|4.7|3.3|0
+Yogurt bianco magro|38|4|5|0.2|0
+Yogurt greco 0% grassi|54|10|3.5|0.2|0
+Yogurt greco intero|97|9|4|5|0
+Skyr|63|11|4|0.2|0
+Kefir|55|3.5|4|3|0
+Panna fresca|337|2|3|35|0
+Burro|717|0.9|0.1|81|0
+Formaggi
+Parmigiano Reggiano|392|33|0|28|0
+Grana Padano|384|33|0|28|0
+Pecorino romano|387|26|0.5|31|0
+Mozzarella di vacca|253|18|0.7|20|0
+Mozzarella di bufala|288|16.7|0.4|24|0
+Ricotta di vacca|146|8.8|3.5|10.9|0
+Fiocchi di latte|98|11|3.4|4.3|0
+Feta|264|14|4|21|0
+Gorgonzola|330|19|0|28|0
+Emmental|380|28|0|29|0
+Scamorza|334|25|1|25|0
+Stracchino|300|16|2|25|0
+Provolone|350|26|2|27|0
+Formaggio spalmabile|250|6|4|23|0
+Olii, condimenti e salse
+Olio extravergine d'oliva|900|0|0|100|0
+Olio di semi|900|0|0|100|0
+Maionese|680|1|1|75|0
+Margarina|720|0.2|0.7|80|0
+Pesto alla genovese|460|5|4|47|1
+Ketchup|112|1.2|26|0.1|0.5
+Salsa di soia|53|8|5|0.1|0
+Dolci e snack
+Cioccolato fondente (70%)|570|8|40|41|11
+Cioccolato al latte|535|7.7|59|30|3.4
+Crema di nocciole|539|6.3|57.5|30.9|0
+Miele|304|0.3|82|0|0
+Zucchero|392|0|100|0|0
+Marmellata|245|0.4|60|0.1|1
+Biscotti secchi|430|7|75|11|3
+Gelato alla crema|200|3.5|23|11|0
+Patatine in busta|540|6|50|35|4
+Popcorn|387|13|78|4.5|15
+Barretta ai cereali|400|6|65|13|5
+Barretta proteica|370|33|30|12|5
+Proteine whey (polvere)|400|80|8|6|0
+Bevande
+Acqua|0|0|0|0|0
+Caffè (senza zucchero)|2|0.1|0.2|0|0
+Tè (senza zucchero)|1|0|0.2|0|0
+Succo d'arancia|45|0.7|10.4|0.2|0.2
+Cola|42|0|10.6|0|0
+Bevanda isotonica|24|0|6|0|0
+Energy drink|45|0|11|0|0
+Birra|43|0.5|3.6|0|0
+Vino rosso|85|0.1|2.6|0|0
+Vino bianco|82|0.1|2.6|0|0`;
+const FOODS=[],FCATS=[];
+(()=>{let cat='';FOODRAW.split('\n').forEach(l=>{const p=l.split('|');if(p.length===1){cat=l.trim();FCATS.push(cat);return}FOODS.push({n:p[0],c:cat,k:+p[1],p:+p[2],h:+p[3],g:+p[4],f:+p[5]})});FOODS.sort((a,b)=>a.n.localeCompare(b.n,'it'))})();
+const fnorm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function foodList(){
+  const q=fnorm(S.ui.fq||'').trim(),cat=S.ui.fcat||'';
+  return FOODS.map((f,i)=>({f,i})).filter(x=>(!cat||x.f.c===cat)&&(!q||fnorm(x.f.n).includes(q)));
+}
+function foodRow(x){const f=x.f;return `<button class="item" data-act="food" data-i="${x.i}"><div class="sp" style="min-width:0"><div class="ellip" style="font-weight:600">${esc(f.n)}</div><div class="tiny mute num">P ${nf(f.p,1)} · C ${nf(f.h,1)} · G ${nf(f.g,1)} g</div></div><div style="text-align:right"><b class="disp num" style="font-size:24px;line-height:1">${nf(f.k,0)}</b><div class="tiny dim">kcal</div></div></button>`}
+function viewFood(){
+  const L=foodList(),cat=S.ui.fcat||'';
+  return `${pageHead('Valori per 100 g','Alimenti',1)}
+  <input id="foodq" data-ev="foodq" type="search" placeholder="Cerca un alimento…" value="${esc(S.ui.fq||'')}" autocomplete="off" aria-label="Cerca un alimento" style="margin-bottom:10px">
+  <div class="hscroll" style="margin-bottom:12px;gap:6px"><button class="chip ${!cat?'on':''}" data-act="fcat" data-c="">Tutti</button>${FCATS.map(c=>`<button class="chip ${cat===c?'on':''}" data-act="fcat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+  ${L.length?`<div class="list">${L.map(foodRow).join('')}</div>`:'<div class="card mute">Nessun alimento trovato.</div>'}
+  <p class="tiny dim" style="margin-top:14px">Valori medi indicativi per 100 g di prodotto (crudo, salvo dove indicato). Variano con marca, maturazione e cottura: per i prodotti confezionati vale l'etichetta. Kcal: P = proteine, C = carboidrati, G = grassi.</p>`;
+}
+function foodSheet(i,g){
+  const f=FOODS[i],m=g/100,v=x=>nf(x*m,x*m<10?1:0);
+  return `<div class="col"><div class="mute small">${esc(f.c)}</div>
+  <label class="f">Quantità (g)<input id="fgr" data-ev="fgr" data-i="${i}" type="number" inputmode="decimal" value="${g}" min="0"></label>
+  <div class="bigk num">${nf(f.k*m,0)}<span style="font-size:22px"> kcal</span></div>
+  <div class="mrow"><div class="mbox"><b style="color:var(--cyan)">${v(f.p)}g</b><span>Proteine</span></div><div class="mbox"><b style="color:var(--amber)">${v(f.h)}g</b><span>Carboidrati</span></div><div class="mbox"><b style="color:var(--pink)">${v(f.g)}g</b><span>Grassi</span></div></div>
+  <p class="small mute">Fibre ${v(f.f)} g · per 100 g: ${nf(f.k,0)} kcal, P ${nf(f.p,1)}, C ${nf(f.h,1)}, G ${nf(f.g,1)}</p>
+  <button class="btn ghost" data-act="foodshop" data-i="${i}">${ic('cart',18)}Aggiungi alla spesa</button></div>`;
+}
+Object.assign(ACT,{
+  foodq:(d,t)=>{S.ui.fq=t.value;render()},
+  fcat:d=>{S.ui.fcat=d.c;render()},
+  food:d=>{const i=+d.i;openSheet(sheetHead(esc(FOODS[i].n))+'<div id="fbody">'+foodSheet(i,100)+'</div>')},
+  fgr:(d,t)=>{const g=Math.max(0,numv(t.value)||0),f=$('#fbody');if(!f)return;const keep=t.selectionStart;f.innerHTML=foodSheet(+d.i,g===0&&!t.value?0:g);const n=$('#fgr');if(n){n.value=t.value;n.focus();try{n.setSelectionRange(keep,keep)}catch(e){}}},
+  foodshop:async d=>{const f=FOODS[+d.i];if(!await W(C('shop').add({n:f.n,q:'',cat:guessCat(f.n),note:'',by:uid,at:Date.now(),done:false})))return;toast('Aggiunto alla spesa',1)}
 });
 /* ===== AVVIO ===== */
 let started=false;
