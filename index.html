@@ -327,6 +327,7 @@ input,select,textarea{background:var(--s2);border:0;border-radius:12px}
 .nrow{display:flex;flex-direction:column;gap:5px}.nbar{height:8px;border-radius:99px;background:var(--s3);overflow:hidden}.nbar i{display:block;height:100%;border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
 .wbars{position:relative;display:flex;align-items:flex-end;gap:6px;height:140px;padding-top:18px}.wb{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}.wb i{display:block;width:70%;border-radius:6px 6px 3px 3px;min-height:0}.wv{font-size:10px;color:var(--mute)}.wd{font-size:11px;color:var(--mute)}.wline{position:absolute;left:0;right:0;border-top:1.5px dashed var(--mute);opacity:.6;pointer-events:none}
 .ntab{width:100%;border-collapse:collapse;font-size:14px}.ntab th{text-align:right;font-weight:600;color:var(--mute);font-size:12px;padding:6px 4px}.ntab td{text-align:right;padding:9px 4px;border-top:1px solid var(--s3)}.ntab th:first-child,.ntab td:first-child{text-align:left}.ntab tr[data-act]{cursor:pointer}
+.sug{display:flex;flex-direction:column;gap:4px;margin:-2px 0 2px}.sug:empty{display:none}.sugi{display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;padding:11px 14px;border-radius:12px;background:var(--s3);color:var(--text);font-size:15px}.sugi span{color:var(--mute);font-size:12px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -1391,7 +1392,7 @@ function viewShop(){
   const left=S.shop.filter(i=>!i.done),done=S.shop.filter(i=>i.done);
   const groups=SHOPCATS.map(([k,n])=>{const l=S.shop.filter(i=>(i.cat||'other')===k).sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.at||0)-(b.at||0));return [k,n,l]}).filter(g=>g[2].length);
   return `${pageHead('Lista condivisa','Spesa')}
-  <div class="card col" style="gap:8px">${foodDatalist()}<div class="shopadd"><input id="shopN" list="foodlist" data-enter="shopadd" placeholder="Aggiungi prodotto…" maxlength="60" autocomplete="off" enterkeyhint="done" aria-label="Prodotto"><input id="shopQ" data-enter="shopadd" placeholder="Qtà" maxlength="14" aria-label="Quantità"><button class="ibtn" style="width:52px;height:46px;background:var(--lime);color:var(--lime-ink)" data-act="shopadd" aria-label="Aggiungi">${ic('plus',22)}</button></div>
+  <div class="card col" style="gap:8px"><div class="shopadd"><input id="shopN" data-ev="sugq" data-sug="sugShop" data-k="shop" data-enter="shopadd" placeholder="Aggiungi prodotto…" maxlength="60" autocomplete="off" enterkeyhint="done" aria-label="Prodotto"><input id="shopQ" data-enter="shopadd" placeholder="Qtà" maxlength="14" aria-label="Quantità"><button class="ibtn" style="width:52px;height:46px;background:var(--lime);color:var(--lime-ink)" data-act="shopadd" aria-label="Aggiungi">${ic('plus',22)}</button></div><div class="sug" id="sugShop"></div>
   <select id="shopC" aria-label="Categoria"><option value="">Categoria automatica</option>${SHOPCATS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
   <div class="row" style="margin:14px 2px 0"><b class="sp">${left.length} da comprare${done.length?' · '+done.length+' presi':''}</b>${done.length?`<button class="btn ghost sm" data-act="shopclear" data-confirm="1">Rimuovi acquistati</button>`:''}</div>
   ${groups.length?groups.map(([k,n,l])=>`<div class="cathead">${n}<span class="cnt">${l.filter(i=>!i.done).length}</span></div><div class="list">${l.map(shopRow).join('')}</div>`).join(''):`<div class="empty" style="margin-top:14px"><b>La lista è vuota</b>Aggiungi il primo prodotto: tutti gli amici lo vedono subito sul proprio telefono.</div>`}`;
@@ -1458,8 +1459,8 @@ function openMeal(dk,s){
 function mealEditor(head){
   const D=S.d,{dk,s}=S.mk,ok=mealOk(dayMeals(S.viewMenu.doc,dk)[s]);
   head=head||sheetHead(`${SLOTS.find(x=>x[0]===s)[1]} · ${DAYS[DK.indexOf(dk)]}`);
-  openSheet(head+foodDatalist()+`<div class="col"><label class="f">Cosa mangi<input data-b="d.t" value="${esc(D.t)}" maxlength="80" placeholder="Es. Pasta al pomodoro e petto di pollo"></label>
-  <div class="kicker">Ingredienti e quantità</div>${D.items.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 74px 40px;gap:6px"><input data-b="d.items.${i}.n" list="foodlist" autocomplete="off" value="${esc(it.n)}" placeholder="Cerca o scrivi…" aria-label="Ingrediente ${i+1}"><input data-b="d.items.${i}.q" value="${esc(it.q)}" inputmode="decimal" placeholder="Qtà" aria-label="Quantità"><select data-b="d.items.${i}.u" aria-label="Unità">${['g','ml','pz','kg','l','cucchiai'].map(u=>`<option ${it.u===u?'selected':''}>${u}</option>`).join('')}</select><button class="ibtn sm" style="height:46px" data-act="mitdel" data-i="${i}" aria-label="Rimuovi ingrediente">${ic('x',16)}</button></div>`).join('')}
+  openSheet(head+`<div class="col"><label class="f">Cosa mangi<input data-b="d.t" value="${esc(D.t)}" maxlength="80" placeholder="Es. Pasta al pomodoro e petto di pollo"></label>
+  <div class="kicker">Ingredienti e quantità</div>${D.items.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 74px 40px;gap:6px"><input data-b="d.items.${i}.n" data-ev="sugq" data-sug="sug${i}" data-k="meal" data-i="${i}" autocomplete="off" value="${esc(it.n)}" placeholder="Cerca o scrivi…" aria-label="Ingrediente ${i+1}"><input data-b="d.items.${i}.q" value="${esc(it.q)}" inputmode="decimal" placeholder="Qtà" aria-label="Quantità"><select data-b="d.items.${i}.u" aria-label="Unità">${['g','ml','pz','kg','l','cucchiai'].map(u=>`<option ${it.u===u?'selected':''}>${u}</option>`).join('')}</select><button class="ibtn sm" style="height:46px" data-act="mitdel" data-i="${i}" aria-label="Rimuovi ingrediente">${ic('x',16)}</button></div><div class="sug" id="sug${i}"></div>`).join('')}
   <button class="btn ghost sm" style="align-self:flex-start" data-act="mitadd">${ic('plus',15)}Ingrediente</button>
   <div class="kicker">Valori nutrizionali</div><p class="tiny mute" style="margin-top:-6px">Si calcolano da soli se scegli gli ingredienti dalla lista e li indichi in g, kg o ml. Puoi anche scriverli a mano.</p><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><label class="f">kcal<input data-b="d.kcal" value="${esc(D.kcal)}" inputmode="decimal"></label><label class="f">Prot.<input data-b="d.p" value="${esc(D.p)}" inputmode="decimal"></label><label class="f">Carb.<input data-b="d.c" value="${esc(D.c)}" inputmode="decimal"></label><label class="f">Grassi<input data-b="d.f" value="${esc(D.f)}" inputmode="decimal"></label></div>
   <p id="mnote" class="tiny lime"></p><button class="btn block" data-act="mealsave">Salva pasto</button>${ok?`<button class="btn ghost block" data-act="mealshop">${ic('cart',18)}Aggiungi ingredienti alla spesa</button><div class="kicker">Commenti</div>${threadBox(mealTarget(dk,s))}<button class="btn danger block" data-act="mealdel" data-confirm="1">Elimina pasto</button>`:''}</div>`);
@@ -1847,7 +1848,7 @@ const DSEG=[['diary','Diario'],['week','Settimana'],['diet','Dieta']];
 const menuSegs=()=>{const s=S.ui.menuSeg||'diary';return `<div class="seg">${DSEG.map(([k,l])=>`<button class="${s===k?'on':''}" data-act="mseg" data-s="${k}">${l}</button>`).join('')}</div>`};
 const gid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const dayName=k=>{const d=pdate(k);return DAYS[(d.getDay()+6)%7]};
-const dayLab=k=>{const t=todayKey();return k===t?'Oggi':k===dkey(addDays(new Date(),-1))?'Ieri':dayName(k)};
+const dayLab=k=>{const t=todayKey();return k===t?'Oggi':k===dkey(addDays(new Date(),-1))?'Ieri':k===dkey(addDays(new Date(),1))?'Domani':dayName(k)};
 function dTargets(){
   const t=S.me&&S.me.diet&&S.me.diet.t;
   if(t&&numv(t.kcal))return {kcal:+numv(t.kcal),p:numv(t.p)||0,c:numv(t.c)||0,f:numv(t.f)||0,src:'dieta'};
@@ -1855,6 +1856,7 @@ function dTargets(){
   return null;
 }
 const dayItems=k=>{const d=(S.diary||[]).find(x=>x.id===k);return d&&d.items?d.items:[]};
+const dOpts=()=>((S.me&&S.me.diet&&S.me.diet.opts)||{});
 const dietPlan=()=>((S.me&&S.me.diet&&S.me.diet.plan)||{});
 function mkI(f,g){const m=g/100;return {id:gid(),n:f.n,g:g,k:Math.round(f.k*m),p:r1(f.p*m),h:r1(f.h*m),fa:r1(f.g*m),b:r1(f.f*m),x:[f.k,f.p,f.h,f.g,f.f]}}
 function reI(i,g){if(!i.x)return i;const m=g/100,x=i.x;return Object.assign({},i,{g:g,k:Math.round(x[0]*m),p:r1(x[1]*m),h:r1(x[2]*m),fa:r1(x[3]*m),b:r1(x[4]*m)})}
@@ -1875,12 +1877,13 @@ function diaryHTML(){
   const left=T?T.kcal-s.k:null;
   const rings=actRings([{v:s.k,t:T?T.kcal:1,c1:'#fa114f',c2:'#ff5c8a'},{v:s.p,t:T?T.p||1:1,c1:'#1ad9e5',c2:'#5ee9f1'},{v:s.h,t:T?T.c||1:1,c1:'#ff9f0a',c2:'#ffd060'}],124);
   const d=pdate(k);
-  return `<div class="row" style="margin-bottom:12px"><button class="ibtn" data-act="dday" data-n="-1" aria-label="Giorno precedente">${ic('left')}</button><div class="sp" style="text-align:center"><div class="disp" style="font-size:22px;font-weight:700">${dayLab(k)}</div><div class="tiny mute">${dayName(k)} ${d.getDate()} ${MESI3[d.getMonth()]}</div></div><button class="ibtn" data-act="dday" data-n="1" aria-label="Giorno successivo" ${isT?'disabled style="opacity:.3"':''}>${ic('right')}</button></div>
+  return `<div class="row" style="margin-bottom:12px"><button class="ibtn" data-act="dday" data-n="-1" aria-label="Giorno precedente">${ic('left')}</button><div class="sp" style="text-align:center"><div class="disp" style="font-size:22px;font-weight:700">${dayLab(k)}</div><div class="tiny mute">${dayName(k)} ${d.getDate()} ${MESI3[d.getMonth()]}</div></div><button class="ibtn" data-act="dday" data-n="1" aria-label="Giorno successivo">${ic('right')}</button></div>
   <div class="actcard"><div class="row" style="gap:18px">${rings}<div class="sp"><div class="kicker">${T?(left>=0?'Ti restano':'Sopra di'):'Assunte'}</div><div class="bigk num" style="font-size:44px">${nf(T?Math.abs(left):s.k,0)}</div><div class="mute small">kcal${T?' · obiettivo '+nf(T.kcal,0):''}</div></div></div>
   <div class="col" style="gap:12px">${prow('Calorie',s.k,T&&T.kcal,'#fa114f','kcal')}${prow('Proteine',s.p,T&&T.p,'#1ad9e5','g')}${prow('Carboidrati',s.h,T&&T.c,'#ff9f0a','g')}${prow('Grassi',s.g,T&&T.f,'#bf5af2','g')}${prow('Fibre',s.f,0,'#a4ff00','g')}</div>
   ${T?'':`<p class="small mute">Per vedere gli obiettivi imposta la tua dieta qui sopra (tab Dieta) oppure calcola il fabbisogno dal Profilo.</p>`}</div>
   <div class="col" style="margin-top:16px;gap:12px">${SLOTS.map(([sl,lab])=>{const li=L.filter(i=>i.slot===sl),t=sumI(li);
     return `<div class="card col" style="gap:8px"><div class="row"><b class="disp sp" style="font-size:18px">${lab}</b>${li.length?`<span class="small mute">${nf(t.k,0)} kcal</span>`:''}<button class="ibtn sm" data-act="pkopen" data-m="diary" data-s="${sl}" aria-label="Aggiungi a ${lab}">${ic('plus',18)}</button></div>
+    ${dOpts()[sl]&&dOpts()[sl].length?`<button class="btn ghost sm" data-act="dpick" data-s="${sl}">${ic('fork',15)}Scegli dalla dieta</button>`:''}
     ${li.length?li.map(i=>`<button class="item" data-act="ditem" data-id="${esc(i.id)}"><div class="sp"><b>${esc(i.n)}</b><div class="tiny mute">${i.x||i.g?nf(i.g,0)+' g · ':''}P ${nf(i.p,1)} · C ${nf(i.h,1)} · G ${nf(i.fa,1)}</div></div><b class="num">${nf(i.k,0)}</b><span class="tiny mute">kcal</span></button>`).join(''):`<div class="tiny dim">Niente ancora</div>`}</div>`}).join('')}</div>
   <p class="tiny dim" style="margin-top:12px">Valori calcolati dalla tabella alimenti (medie indicative per 100 g). Per i prodotti confezionati vale l'etichetta: usa l'inserimento manuale.</p>`;
 }
@@ -1899,9 +1902,12 @@ function weekTable(){
 /* ---------- dieta personalizzata ---------- */
 function dietHTML(){
   const di=(S.me&&S.me.diet)||{},plan=dietPlan(),T=dTargets(),all=[].concat(...SLOTS.map(([s])=>plan[s]||[])),tot=sumI(all);
+  const OP=dOpts(),hasO=SLOTS.some(([sl])=>OP[sl]&&OP[sl].length);
+  const optsHTML=hasO?`<div class="sec"><h2>La mia dieta</h2></div><p class="small mute" style="margin-bottom:10px">Per ogni pasto scegli un'opzione per gruppo. Per usarla vai nel Diario, scegli il giorno e tocca "Scegli dalla dieta".</p><div class="col" style="gap:12px">${SLOTS.filter(([sl])=>OP[sl]&&OP[sl].length).map(([sl,lab])=>`<div class="card col" style="gap:10px"><b class="disp" style="font-size:19px">${lab}</b>${OP[sl].map(g=>`<div><div class="kicker" style="margin-bottom:6px">${esc(g.t)}</div><div class="list">${g.o.map(o=>`<div class="item"><div class="sp"><b>${esc(o.l)}</b><div class="tiny mute">${o.items.map(i=>esc(i.n)+(i.g?' '+nf(i.g,0)+' g':'')).join(' + ')}</div></div><b class="num">${nf(sumI(o.items).k,0)}</b><span class="tiny mute">kcal</span></div>`).join('')}</div></div>`).join('')}</div>`).join('')}</div>`:'';
   return `<div class="sec"><h2>Obiettivi giornalieri</h2></div><div class="card col">${T?`<div><div class="bigk num" style="font-size:48px">${nf(T.kcal,0)}</div><div class="mute small">kcal al giorno · ${T.src==='dieta'?'impostati da te':'dal tuo fabbisogno calcolato'}</div></div><div class="mrow"><div class="mbox"><b style="color:var(--cyan)">${nf(T.p,0)}g</b><span>Proteine</span></div><div class="mbox"><b style="color:var(--amber)">${nf(T.c,0)}g</b><span>Carboidrati</span></div><div class="mbox"><b style="color:var(--pink)">${nf(T.f,0)}g</b><span>Grassi</span></div></div>`:`<p class="mute small">Inserisci gli obiettivi della tua dieta (te li ha dati il nutrizionista?) oppure calcola il fabbisogno dal Profilo.</p>`}
   <div class="row"><button class="btn ghost sp" data-act="dtedit">${ic('edit',16)}${di.t?'Modifica obiettivi':'Imposta obiettivi'}</button>${di.t?`<button class="btn ghost sp" data-act="dtreset">Usa il fabbisogno</button>`:''}</div></div>
-  <div class="sec"><h2>Il mio piano</h2>${all.length?`<span class="small mute">${nf(tot.k,0)} kcal</span>`:''}</div>
+  ${optsHTML}
+  ${all.length||!hasO?`<div class="sec"><h2>${hasO?'Piano fisso':'Il mio piano'}</h2>`:'<div hidden>'}${all.length?`<span class="small mute">${nf(tot.k,0)} kcal</span>`:''}</div>
   <div class="col" style="gap:12px">${SLOTS.map(([sl,lab])=>{const li=plan[sl]||[],t=sumI(li);
     return `<div class="card col" style="gap:8px"><div class="row"><b class="disp sp" style="font-size:18px">${lab}</b>${li.length?`<span class="small mute">${nf(t.k,0)} kcal</span>`:''}<button class="ibtn sm" data-act="pkopen" data-m="diet" data-s="${sl}" aria-label="Aggiungi a ${lab}">${ic('plus',18)}</button></div>
     ${li.length?li.map(i=>`<button class="item" data-act="pitem" data-s="${sl}" data-id="${esc(i.id)}"><div class="sp"><b>${esc(i.n)}</b><div class="tiny mute">${i.g?nf(i.g,0)+' g · ':''}P ${nf(i.p,1)} · C ${nf(i.h,1)} · G ${nf(i.fa,1)}</div></div><b class="num">${nf(i.k,0)}</b><span class="tiny mute">kcal</span></button>`).join('')+`<button class="btn ghost sm" data-act="plantoday" data-s="${sl}">${ic('check',15)}Ho mangiato questo (${lab.toLowerCase()})</button>`:`<div class="tiny dim">Aggiungi gli alimenti previsti</div>`}</div>`}).join('')}</div>
@@ -1965,7 +1971,7 @@ async function pkSave(items){
 }
 Object.assign(ACT,{
   mseg:d=>{S.ui.menuSeg=d.s;render()},
-  dday:d=>{const k=addDays(pdate(S.ui.dDay||todayKey()),+d.n),t=todayKey(),nk=dkey(k);S.ui.dDay=nk>t?t:nk;render()},
+  dday:d=>{const k=addDays(pdate(S.ui.dDay||todayKey()),+d.n),mx=dkey(addDays(new Date(),30));let nk=dkey(k);if(nk>mx)nk=mx;S.ui.dDay=nk;render()},
   dgo:d=>{S.ui.dDay=d.k;S.ui.menuSeg='diary';render();window.scrollTo(0,0)},
   pkopen:d=>{S.pk={m:d.m,s:d.s,date:S.ui.dDay||todayKey(),q:'',sel:null,g:100,man:false};S.d={mn:'',mk:'',mp:'',mc:'',mf:''};openSheet(pkBody(),{});},
   pkslot:d=>{S.pk.s=d.s;pkDraw()},
@@ -2009,11 +2015,16 @@ function edWrite(fn){
    righe: "OBIETTIVI|kcal|P|C|G"  ·  "b|Nome alimento|grammi"  ·  "b|Nome|g|kcal|P|C|G" (manuale)
    "NOTE|testo" (le righe successive senza | continuano la nota). Slot: b s l m d */
 function parseDiet(txt){
-  const plan={},bad=[];let t=null,note=null,n=0;
+  const plan={},opts={},bad=[];let t=null,note=null,n=0;
   for(const raw of String(txt||'').split(/\r?\n/)){
     const ln=raw.trim();if(!ln||ln[0]==='#')continue;
     if(note!==null&&!/^(OBIETTIVI|[bslmd])\|/i.test(ln)){note+='\n'+ln;continue}
     const a=ln.split('|').map(x=>x.trim()),h=a[0].toLowerCase();
+    if(h==='o'){const sl=(a[1]||'').toLowerCase();if(!SLOTS.some(x=>x[0]===sl)||!a[2]||!a[3]||!a[4]){bad.push(ln);continue}
+      const items=[];let okk=true;for(const part of a.slice(4).join('|').split(/\s\+\s/)){const q=part.split(':').map(x=>x.trim()),g=numv(q[1]);if(!q[0]||!g||g<=0){okk=false;break}
+        const f=foodMatch(q[0]);if(f)items.push(mkI(f,g));else if(q.length>=6)items.push({id:gid(),n:q[0],g:g,k:Math.round(numv(q[2])||0),p:r1(numv(q[3])||0),h:r1(numv(q[4])||0),fa:r1(numv(q[5])||0),b:0});else{okk=false;bad.push(ln+'  ('+q[0]+' non in tabella)');break}}
+      if(!okk||!items.length){if(!bad.includes(ln))bad.push(ln);continue}
+      const L=opts[sl]=opts[sl]||[];let gr=L.find(x=>x.t===a[2]);if(!gr)L.push(gr={id:gid(),t:a[2],o:[]});gr.o.push({id:gid(),l:a[3],items});n++;continue}
     if(h==='note'){note=a.slice(1).join('|');continue}
     if(h==='obiettivi'){const k=numv(a[1]);if(k)t={kcal:Math.round(k),p:Math.round(numv(a[2])||0),c:Math.round(numv(a[3])||0),f:Math.round(numv(a[4])||0)};continue}
     if(!SLOTS.some(x=>x[0]===h)){bad.push(ln);continue}
@@ -2023,13 +2034,43 @@ function parseDiet(txt){
     else if(a.length>=4&&numv(a[3])!=null){(plan[h]=plan[h]||[]).push({id:gid(),n:a[1],g:g,k:Math.round(numv(a[3])),p:r1(numv(a[4])||0),h:r1(numv(a[5])||0),fa:r1(numv(a[6])||0),b:0});n++}
     else bad.push(ln+'  (alimento non in tabella)');
   }
-  return {plan,t,note,bad,n};
+  return {plan,opts,t,note,bad,n};
 }
 Object.assign(ACT,{
   dimport:()=>{S.d={imp:''};openSheet(sheetHead('Importa dieta')+`<div class="col"><p class="small mute">Incolla il testo della dieta nel formato che ti ha preparato Claude. Sostituisce il piano attuale.</p><textarea data-b="d.imp" rows="10" placeholder="b|Yogurt greco 0% grassi|150"></textarea><button class="btn" data-act="dimpgo">Importa</button></div>`)},
   dimpgo:async()=>{const r=parseDiet(S.d.imp);if(!r.n)return toast('Non ho trovato alimenti nel testo');
     if(r.bad.length&&!S.d.impOk){S.d.impOk=1;return toast('Righe non lette: '+r.bad.length+'. Tocca ancora Importa per procedere senza')}
-    if(await saveDiet(di=>{di.plan=r.plan;if(r.t)di.t=r.t;if(r.note!==null)di.note=r.note})){closeSheet();toast('Dieta importata ('+r.n+' alimenti)',1)}}
+    if(await saveDiet(di=>{di.plan=r.plan;if(Object.keys(r.opts).length)di.opts=r.opts;if(r.t)di.t=r.t;if(r.note!==null)di.note=r.note})){closeSheet();toast('Dieta importata ('+r.n+' alimenti)',1)}}
+});
+
+/* ---------- suggerimenti alimenti con lista (menu e spesa) ---------- */
+function sugList(q){
+  q=fnorm(q||'').trim();if(q.length<2)return [];const r=[];
+  FOODS.forEach((f,i)=>{const n=fnorm(f.n),p=n.indexOf(q);if(p>=0)r.push([p===0?0:n.split(' ').some(w=>w.startsWith(q))?1:2,i])});
+  r.sort((a,b)=>a[0]-b[0]||FOODS[a[1]].n.localeCompare(FOODS[b[1]].n));return r.slice(0,6).map(x=>x[1]);
+}
+Object.assign(ACT,{
+  sugq:(d,t)=>{const c=document.getElementById(d.sug);if(!c)return;const L=sugList(t.value);
+    c.innerHTML=L.map(i=>`<button class="sugi" data-act="sugpick" data-fi="${i}" data-k="${d.k}" data-i="${d.i||''}" data-sug="${d.sug}"><b>${esc(FOODS[i].n)}</b><span>${nf(FOODS[i].k,0)} kcal/100 g</span></button>`).join('')},
+  sugpick:d=>{const f=FOODS[+d.fi],c=document.getElementById(d.sug);if(c)c.innerHTML='';
+    if(d.k==='shop'){const e=$('#shopN');if(e)e.value=f.n;const q=$('#shopQ');if(q)q.focus();return}
+    const i=+d.i;if(!S.d||!S.d.items||!S.d.items[i])return;S.d.items[i].n=f.n;if(!LIQ.includes(f.c)&&S.d.items[i].u!=='kg')S.d.items[i].u='g';
+    const e=document.querySelector('[data-b="d.items.'+i+'.n"]');if(e)e.value=f.n;
+    const u=document.querySelector('[data-b="d.items.'+i+'.u"]');if(u)u.value=S.d.items[i].u;
+    recalcMeal();const q=document.querySelector('[data-b="d.items.'+i+'.q"]');if(q)q.focus()}
+});
+
+/* ---------- scegli dalla dieta (per giorno) ---------- */
+function dpBody(){
+  const sl=S.dp.s,lab=SLOTS.find(x=>x[0]===sl)[1],G=dOpts()[sl]||[],k=S.dp.date,d=pdate(k);
+  return sheetHead(`${lab} · ${dayLab(k)} ${d.getDate()} ${MESI3[d.getMonth()]}`)+`<p class="small mute" style="margin-bottom:10px">Tocca le opzioni che scegli per questo pasto: si aggiungono al diario con i valori già calcolati.</p><div class="col" style="gap:14px">${G.map(g=>`<div><div class="kicker" style="margin-bottom:6px">${esc(g.t)}</div><div class="list">${g.o.map(o=>{const on=S.dp.done[o.id];return `<button class="item" data-act="dpadd" data-o="${o.id}"><div class="sp"><b>${esc(o.l)}</b><div class="tiny mute">${o.items.map(i=>esc(i.n)+(i.g?' '+nf(i.g,0)+' g':'')).join(' + ')}</div></div>${on?`<span class="chip on">${ic('check',14)}Aggiunto</span>`:`<b class="num">${nf(sumI(o.items).k,0)}</b><span class="tiny mute">kcal</span>`}</button>`}).join('')}</div></div>`).join('')}</div>`;
+}
+Object.assign(ACT,{
+  dpick:d=>{S.dp={s:d.s,date:S.ui.dDay||todayKey(),done:{}};openSheet(dpBody())},
+  dpadd:async d=>{const P=S.dp;if(!P)return;let o=null;for(const g of (dOpts()[P.s]||[])){const f=g.o.find(x=>x.id===d.o);if(f)o=f}if(!o)return;
+    if(P.done[o.id]){P.done[o.id]=0;const ids=P.ids&&P.ids[o.id];if(ids&&await saveDay(P.date,dayItems(P.date).filter(x=>!ids.includes(x.id)))){}$('#sheetBody').innerHTML=dpBody();return}
+    const add=o.items.map(i=>Object.assign({},i,{id:gid(),slot:P.s}));
+    if(!await saveDay(P.date,dayItems(P.date).concat(add)))return;P.done[o.id]=1;(P.ids=P.ids||{})[o.id]=add.map(x=>x.id);$('#sheetBody').innerHTML=dpBody()}
 });
 /* ===== AVVIO ===== */
 let started=false;
