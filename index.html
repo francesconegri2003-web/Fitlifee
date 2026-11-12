@@ -1461,7 +1461,7 @@ function mealEditor(head){
   head=head||sheetHead(`${SLOTS.find(x=>x[0]===s)[1]} · ${DAYS[DK.indexOf(dk)]}`);
   openSheet(head+`<div class="col"><label class="f">Cosa mangi<input data-b="d.t" value="${esc(D.t)}" maxlength="80" placeholder="Es. Pasta al pomodoro e petto di pollo"></label>
   <div class="kicker">Ingredienti e quantità</div>${D.items.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 74px 40px;gap:6px"><input data-b="d.items.${i}.n" data-ev="sugq" data-sug="sug${i}" data-k="meal" data-i="${i}" autocomplete="off" value="${esc(it.n)}" placeholder="Cerca o scrivi…" aria-label="Ingrediente ${i+1}"><input data-b="d.items.${i}.q" value="${esc(it.q)}" inputmode="decimal" placeholder="Qtà" aria-label="Quantità"><select data-b="d.items.${i}.u" aria-label="Unità">${['g','ml','pz','kg','l','cucchiai'].map(u=>`<option ${it.u===u?'selected':''}>${u}</option>`).join('')}</select><button class="ibtn sm" style="height:46px" data-act="mitdel" data-i="${i}" aria-label="Rimuovi ingrediente">${ic('x',16)}</button></div><div class="sug" id="sug${i}"></div>`).join('')}
-  <button class="btn ghost sm" style="align-self:flex-start" data-act="mitadd">${ic('plus',15)}Ingrediente</button>
+  <button class="btn block" data-act="mpick">${ic('leaf',18)}Scegli alimento dalla lista</button><button class="btn ghost sm" style="align-self:flex-start" data-act="mitadd">${ic('plus',15)}Ingrediente a mano</button>
   <div class="kicker">Valori nutrizionali</div><p class="tiny mute" style="margin-top:-6px">Si calcolano da soli se scegli gli ingredienti dalla lista e li indichi in g, kg o ml. Puoi anche scriverli a mano.</p><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><label class="f">kcal<input data-b="d.kcal" value="${esc(D.kcal)}" inputmode="decimal"></label><label class="f">Prot.<input data-b="d.p" value="${esc(D.p)}" inputmode="decimal"></label><label class="f">Carb.<input data-b="d.c" value="${esc(D.c)}" inputmode="decimal"></label><label class="f">Grassi<input data-b="d.f" value="${esc(D.f)}" inputmode="decimal"></label></div>
   <p id="mnote" class="tiny lime"></p><button class="btn block" data-act="mealsave">Salva pasto</button>${ok?`<button class="btn ghost block" data-act="mealshop">${ic('cart',18)}Aggiungi ingredienti alla spesa</button><div class="kicker">Commenti</div>${threadBox(mealTarget(dk,s))}<button class="btn danger block" data-act="mealdel" data-confirm="1">Elimina pasto</button>`:''}</div>`);
 }
@@ -1945,7 +1945,7 @@ function pkSelHTML(){
   <label class="f">Quantità (g)<input id="pkg" data-ev="pkg" type="number" inputmode="decimal" value="${P.g}" min="0"></label>
   <div class="hscroll" style="gap:6px">${[50,100,150,200,250,300].map(x=>`<button class="chip" data-act="pkset" data-g="${x}">${x} g</button>`).join('')}</div>
   <div id="pkprev">${pkPrev()}</div>
-  <button class="btn" data-act="pkadd">${ic('check',18)}${P.m==='diet'?'Aggiungi alla dieta':'Aggiungi al diario'}</button></div>`;
+  <button class="btn" data-act="pkadd">${ic('check',18)}${P.m==='diet'?'Aggiungi alla dieta':P.m==='meal'?'Aggiungi al pasto':'Aggiungi al diario'}</button></div>`;
 }
 function pkPrev(){const P=S.pk,f=FOODS[P.sel],m=(numv(P.g)||0)/100,v=x=>nf(x*m,x*m<10?1:0);
   return `<div class="bigk num" style="font-size:44px">${nf(f.k*m,0)}<span style="font-size:20px"> kcal</span></div><div class="mrow"><div class="mbox"><b style="color:var(--cyan)">${v(f.p)}g</b><span>Proteine</span></div><div class="mbox"><b style="color:var(--amber)">${v(f.h)}g</b><span>Carboidrati</span></div><div class="mbox"><b style="color:var(--pink)">${v(f.g)}g</b><span>Grassi</span></div></div>`}
@@ -1959,7 +1959,7 @@ function pkManHTML(){
 function pkBody(){
   const P=S.pk,lab=SLOTS.find(x=>x[0]===P.s)[1];
   const chips=`<div class="hscroll" style="gap:6px;margin-bottom:10px">${SLOTS.map(([s,l])=>`<button class="chip ${P.s===s?'on':''}" data-act="pkslot" data-s="${s}">${l}</button>`).join('')}</div>`;
-  return sheetHead(`${P.m==='diet'?'Dieta':'Aggiungi'} · ${lab}`)+chips+`<div id="pkmain">${P.man?pkManHTML():P.sel!=null?pkSelHTML():`<input id="pkq" data-ev="pkq" type="search" placeholder="Cerca un alimento…" value="${esc(P.q||'')}" autocomplete="off" style="margin-bottom:10px"><div id="pklist">${pkListHTML()}</div><button class="btn ghost" style="margin-top:12px" data-act="pkman">Non lo trovo: inserisci a mano</button>`}</div>`;
+  return sheetHead(P.m==='meal'?'Scegli alimento':`${P.m==='diet'?'Dieta':'Aggiungi'} · ${lab}`,P.m==='meal')+(P.m==='meal'?'':chips)+`<div id="pkmain">${P.man?pkManHTML():P.sel!=null?pkSelHTML():`<input id="pkq" data-ev="pkq" type="search" placeholder="Cerca un alimento…" value="${esc(P.q||'')}" autocomplete="off" style="margin-bottom:10px"><div id="pklist">${pkListHTML()}</div>${P.m==='meal'?'':`<button class="btn ghost" style="margin-top:12px" data-act="pkman">Non lo trovo: inserisci a mano</button>`}`}</div>`;
 }
 function pkDraw(){if(!S.pk||$('#sheet').hidden)return;const b=$('#sheetBody');b.innerHTML=pkBody()}
 const pkTarget=()=>S.pk.m==='diet'?'plan':'day';
@@ -1982,6 +1982,7 @@ Object.assign(ACT,{
   pkg:(d,t)=>{S.pk.g=t.value;const p=$('#pkprev');if(p)p.innerHTML=pkPrev()},
   pkset:d=>{S.pk.g=+d.g;const e=$('#pkg');if(e)e.value=d.g;const p=$('#pkprev');if(p)p.innerHTML=pkPrev()},
   pkadd:async()=>{const P=S.pk,g=numv(P.g);if(!g||g<=0)return toast('Inserisci i grammi');if(g>5000)return toast('Quantità troppo alta');
+    if(P.m==='meal'){const f=FOODS[P.sel],it={n:f.n,q:String(g),u:'g'},L=S.d.items,e=L.findIndex(x=>!(x.n||'').trim()&&!(x.q||'').toString().trim());if(e>=0)L[e]=it;else L.push(it);mealEditor();recalcMeal();toast('Aggiunto',1);return}
     if(!await pkSave([mkI(FOODS[P.sel],g)]))return;toast('Aggiunto',1);P.sel=null;P.q='';pkDraw()},
   pkaddman:async()=>{const P=S.pk,n=(S.d.mn||'').trim(),k=numv(S.d.mk);if(!n)return toast('Scrivi il nome');if(k==null||k<0)return toast('Inserisci le kcal');
     const it={id:gid(),n,g:0,k:Math.round(k),p:r1(numv(S.d.mp)||0),h:r1(numv(S.d.mc)||0),fa:r1(numv(S.d.mf)||0),b:0};
@@ -2072,6 +2073,8 @@ Object.assign(ACT,{
     const add=o.items.map(i=>Object.assign({},i,{id:gid(),slot:P.s}));
     if(!await saveDay(P.date,dayItems(P.date).concat(add)))return;P.done[o.id]=1;(P.ids=P.ids||{})[o.id]=add.map(x=>x.id);$('#sheetBody').innerHTML=dpBody()}
 });
+
+Object.assign(ACT,{mpick:()=>{S.pk={m:'meal',s:S.mk.s,date:'',q:'',sel:null,g:100,man:false};openSheet(pkBody(),{back:()=>mealEditor()})}});
 /* ===== AVVIO ===== */
 let started=false;
 async function refreshStatus(){const r=await sb.rpc('my_status');if(r.error||!r.data){console.error(r.error);S.fatal='db';return}S.status=r.data;S.canEdit=!!r.data.admin}
