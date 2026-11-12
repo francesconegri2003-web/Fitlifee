@@ -1906,7 +1906,8 @@ function dietHTML(){
     return `<div class="card col" style="gap:8px"><div class="row"><b class="disp sp" style="font-size:18px">${lab}</b>${li.length?`<span class="small mute">${nf(t.k,0)} kcal</span>`:''}<button class="ibtn sm" data-act="pkopen" data-m="diet" data-s="${sl}" aria-label="Aggiungi a ${lab}">${ic('plus',18)}</button></div>
     ${li.length?li.map(i=>`<button class="item" data-act="pitem" data-s="${sl}" data-id="${esc(i.id)}"><div class="sp"><b>${esc(i.n)}</b><div class="tiny mute">${i.g?nf(i.g,0)+' g · ':''}P ${nf(i.p,1)} · C ${nf(i.h,1)} · G ${nf(i.fa,1)}</div></div><b class="num">${nf(i.k,0)}</b><span class="tiny mute">kcal</span></button>`).join('')+`<button class="btn ghost sm" data-act="plantoday" data-s="${sl}">${ic('check',15)}Ho mangiato questo (${lab.toLowerCase()})</button>`:`<div class="tiny dim">Aggiungi gli alimenti previsti</div>`}</div>`}).join('')}</div>
   ${all.length?`<button class="btn block" style="margin-top:12px" data-act="plantoday" data-s="">${ic('check',18)}Aggiungi tutta la dieta a oggi</button>`:''}
-  <div class="sec"><h2>Note e indicazioni</h2></div><div class="card col">${di.note?`<p style="white-space:pre-wrap">${esc(di.note)}</p>`:`<p class="mute small">Scrivi qui le indicazioni della tua dieta: orari, alimenti da evitare, integratori…</p>`}<button class="btn ghost" data-act="dnote">${ic('edit',16)}${di.note?'Modifica note':'Scrivi note'}</button></div>`;
+  <div class="sec"><h2>Note e indicazioni</h2></div><div class="card col">${di.note?`<p style="white-space:pre-wrap">${esc(di.note)}</p>`:`<p class="mute small">Scrivi qui le indicazioni della tua dieta: orari, alimenti da evitare, integratori…</p>`}<button class="btn ghost" data-act="dnote">${ic('edit',16)}${di.note?'Modifica note':'Scrivi note'}</button></div>
+  <button class="btn ghost block" style="margin-top:12px" data-act="dimport">${ic('download',16)}Importa una dieta da testo</button>`;
 }
 async function saveDiet(mut){
   const di=Object.assign({},(S.me&&S.me.diet)||{});mut(di);
@@ -2003,6 +2004,33 @@ function edWrite(fn){
   if(e.m==='diet')return saveDiet(di=>{const pl=Object.assign({},di.plan||{});pl[e.s]=fn(pl[e.s]||[]);di.plan=pl});
   const k=S.ui.dDay||todayKey();return saveDay(k,fn(dayItems(k)));
 }
+
+/* ---------- importa dieta da testo ----------
+   righe: "OBIETTIVI|kcal|P|C|G"  ·  "b|Nome alimento|grammi"  ·  "b|Nome|g|kcal|P|C|G" (manuale)
+   "NOTE|testo" (le righe successive senza | continuano la nota). Slot: b s l m d */
+function parseDiet(txt){
+  const plan={},bad=[];let t=null,note=null,n=0;
+  for(const raw of String(txt||'').split(/\r?\n/)){
+    const ln=raw.trim();if(!ln||ln[0]==='#')continue;
+    if(note!==null&&!/^(OBIETTIVI|[bslmd])\|/i.test(ln)){note+='\n'+ln;continue}
+    const a=ln.split('|').map(x=>x.trim()),h=a[0].toLowerCase();
+    if(h==='note'){note=a.slice(1).join('|');continue}
+    if(h==='obiettivi'){const k=numv(a[1]);if(k)t={kcal:Math.round(k),p:Math.round(numv(a[2])||0),c:Math.round(numv(a[3])||0),f:Math.round(numv(a[4])||0)};continue}
+    if(!SLOTS.some(x=>x[0]===h)){bad.push(ln);continue}
+    const g=numv(a[2]);if(!a[1]||!g||g<=0){bad.push(ln);continue}
+    const f=foodMatch(a[1]);
+    if(f){(plan[h]=plan[h]||[]).push(mkI(f,g));n++}
+    else if(a.length>=4&&numv(a[3])!=null){(plan[h]=plan[h]||[]).push({id:gid(),n:a[1],g:g,k:Math.round(numv(a[3])),p:r1(numv(a[4])||0),h:r1(numv(a[5])||0),fa:r1(numv(a[6])||0),b:0});n++}
+    else bad.push(ln+'  (alimento non in tabella)');
+  }
+  return {plan,t,note,bad,n};
+}
+Object.assign(ACT,{
+  dimport:()=>{S.d={imp:''};openSheet(sheetHead('Importa dieta')+`<div class="col"><p class="small mute">Incolla il testo della dieta nel formato che ti ha preparato Claude. Sostituisce il piano attuale.</p><textarea data-b="d.imp" rows="10" placeholder="b|Yogurt greco 0% grassi|150"></textarea><button class="btn" data-act="dimpgo">Importa</button></div>`)},
+  dimpgo:async()=>{const r=parseDiet(S.d.imp);if(!r.n)return toast('Non ho trovato alimenti nel testo');
+    if(r.bad.length&&!S.d.impOk){S.d.impOk=1;return toast('Righe non lette: '+r.bad.length+'. Tocca ancora Importa per procedere senza')}
+    if(await saveDiet(di=>{di.plan=r.plan;if(r.t)di.t=r.t;if(r.note!==null)di.note=r.note})){closeSheet();toast('Dieta importata ('+r.n+' alimenti)',1)}}
+});
 /* ===== AVVIO ===== */
 let started=false;
 async function refreshStatus(){const r=await sb.rpc('my_status');if(r.error||!r.data){console.error(r.error);S.fatal='db';return}S.status=r.data;S.canEdit=!!r.data.admin}
