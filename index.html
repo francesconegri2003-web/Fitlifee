@@ -328,6 +328,13 @@ input,select,textarea{background:var(--s2);border:0;border-radius:12px}
 .wbars{position:relative;display:flex;align-items:flex-end;gap:6px;height:140px;padding-top:18px}.wb{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}.wb i{display:block;width:70%;border-radius:6px 6px 3px 3px;min-height:0}.wv{font-size:10px;color:var(--mute)}.wd{font-size:11px;color:var(--mute)}.wline{position:absolute;left:0;right:0;border-top:1.5px dashed var(--mute);opacity:.6;pointer-events:none}
 .ntab{width:100%;border-collapse:collapse;font-size:14px}.ntab th{text-align:right;font-weight:600;color:var(--mute);font-size:12px;padding:6px 4px}.ntab td{text-align:right;padding:9px 4px;border-top:1px solid var(--s3)}.ntab th:first-child,.ntab td:first-child{text-align:left}.ntab tr[data-act]{cursor:pointer}
 .sug{display:flex;flex-direction:column;gap:4px;margin:-2px 0 2px}.sug:empty{display:none}.sugi{display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;padding:11px 14px;border-radius:12px;background:var(--s3);color:var(--text);font-size:15px}.sugi span{color:var(--mute);font-size:12px;white-space:nowrap}
+
+.fm-in{color:#30d158}.fm-out{color:#ff453a}
+.fmacc{display:flex;flex-direction:column;gap:2px;min-width:132px;padding:10px 12px;border-radius:14px;background:var(--s2);text-align:left;flex:none}.fmacc b{font-size:16px}
+.fmem{width:36px;height:36px;border-radius:50%;background:var(--s3);display:grid;place-items:center;font-size:18px;flex:none}
+.fmbars{display:flex;gap:8px;height:130px;align-items:flex-end}.fmb{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}.fmpair{display:flex;gap:3px;align-items:flex-end;height:calc(100% - 18px);width:100%;justify-content:center}.fmpair i{display:block;width:38%;max-width:16px;border-radius:5px 5px 2px 2px;min-height:2px}.fmsel{color:var(--text);font-weight:700}
+.fmcats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fmcat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:14px;background:var(--s2);font-size:12px;font-weight:600;color:var(--text)}.fmcat span{font-size:22px}.fmcat.on{background:var(--lime-soft);outline:2px solid var(--lime)}
+.fmamt{font-size:34px!important;font-weight:700;height:64px!important}
 </style>
 </head>
 <body>
@@ -698,11 +705,11 @@ const exThumb=e=>`<div class="exthumb">${bodySVG(e.m,e.m2)}</div>`;
 
 /* ---------- stato ---------- */
 let db=null,user=null,downloads=null,uid=null;
-const S={t0:Date.now(),loaded:{},group:null,members:{},profiles:{},stats:{},banned:{},feed:[],comments:[],likes:[],shop:[],challenges:[],
-  me:null,sessions:[],plans:[],exs:[],weights:[],goals:[],schedules:[],diary:[],myWeek:null,viewMenu:null,
+const S={t0:Date.now(),loaded:{},group:null,members:{},profiles:{},stats:{},banned:{},feed:[],likes:[],shop:[],challenges:[],
+  me:null,sessions:[],plans:[],exs:[],weights:[],goals:[],schedules:[],diary:[],money:[],myWeek:null,viewMenu:null,
   canEdit:false,vizName:'',fatal:null,slow:false,live:null,d:null,sheet:null,
   ui:{tab:'home',page:null,homeSeg:'att',workSeg:'oggi',sfSeg:'class',period:'week',menuUid:null,menuWk:wkKey(new Date()),cat:null,q:'',calM:null,hist:12},
-  likeIdx:{},comIdx:{}};
+  likeIdx:{}};
 try{const t=localStorage.getItem('fl_tab');if(t)S.ui.tab=t}catch(e){}
 const C=n=>db.collection(n);
 const MY=()=>db.doc('data/users/'+uid+'/p');
@@ -722,13 +729,8 @@ function openSheet(html,opts){opts=opts||{};$('#sheetBody').innerHTML=html;$('#s
 function closeSheet(){$('#sheet').hidden=true;document.body.classList.remove('noscroll');$('#sheetBody').innerHTML='';const c=S.sheet&&S.sheet.onClose;S.sheet=null;if(c)c()}
 const sheetHead=(t,back)=>`<div class="sheethead">${back?`<button class="ibtn sm" data-act="sheetBack" aria-label="Indietro">${ic('left',18)}</button>`:''}<h2>${t}</h2><button class="ibtn sm" data-act="closeSheet" aria-label="Chiudi">${ic('x',18)}</button></div>`;
 
-/* ---------- commenti e like ---------- */
-function indexSocial(){const li={},ci={};for(const l of S.likes){const o=li[l.target]||(li[l.target]={n:0,me:false});o.n++;if(l.uid===uid)o.me=true}for(const c of S.comments)ci[c.target]=(ci[c.target]||0)+1;S.likeIdx=li;S.comIdx=ci}
-function cmHTML(c){const p=prof(c.uid);return `<div class="cm">${avatar(p.avatar,32)}<div class="bubble"><div class="row"><b>${esc(p.nick)}</b><span class="tiny dim">${ago(c.ts)}</span><span class="sp"></span>${c.uid===uid?`<button class="dim" data-act="cdel" data-id="${c.id}" aria-label="Elimina commento">${ic('x',14)}</button>`:''}</div><div>${esc(c.text)}</div></div></div>`}
-const threadList=t=>{const cs=S.comments.filter(c=>c.target===t).sort((a,b)=>a.ts-b.ts);return cs.length?cs.map(cmHTML).join(''):'<p class="mute small">Ancora nessun commento. Scrivi il primo.</p>'};
-const threadBox=(t,ph)=>`<div class="col" style="gap:10px"><div class="col" style="gap:8px" data-tl="${esc(t)}">${threadList(t)}</div><div class="row"><input data-enter="cpost" data-t="${esc(t)}" placeholder="${esc(ph||'Scrivi un commento…')}" maxlength="400" enterkeyhint="send" aria-label="Commento"><button class="ibtn" style="background:var(--lime);color:var(--lime-ink)" data-act="cpost" data-t="${esc(t)}" aria-label="Invia">${ic('send',18)}</button></div></div>`;
-function refreshThreads(){$$('[data-tl]').forEach(el=>{el.innerHTML=threadList(el.dataset.tl)})}
-function openThread(t,title){openSheet(sheetHead(esc(title||'Commenti'))+threadBox(t))}
+/* ---------- like ---------- */
+function indexSocial(){const li={};for(const l of S.likes){const o=li[l.target]||(li[l.target]={n:0,me:false});o.n++;if(l.uid===uid)o.me=true}S.likeIdx=li}
 
 /* ---------- profilo pubblico, statistiche, badge ---------- */
 const defVis=()=>({name:false,age:false,height:false,weight:false,goal:true,level:true,pref:true,exp:false,stats:true,weightHist:false});
@@ -800,7 +802,6 @@ function startWatches(){
   watch('feed',C('feed').orderBy('ts','desc').limit(150),s=>{
     if(S.loaded.feed){s.docChanges().forEach(c=>{if(c.type==='added'){const f=c.doc.data();if(f.uid!==uid&&f.ts>S.t0-30000)toast(feedPlain(f))}})}
     S.feed=rows(s)});
-  watch('comments',C('comments').orderBy('ts','desc').limit(1000),s=>{S.comments=rows(s);indexSocial();refreshThreads()});
   watch('likes',C('likes').limit(2000),s=>{S.likes=rows(s);indexSocial()});
   watch('shop',C('shop').limit(500),s=>{S.shop=rows(s)});
   watch('challenges',C('challenges').limit(100),s=>{S.challenges=rows(s)});
@@ -810,6 +811,7 @@ function startWatches(){
   watch('weights',mine('weights').orderBy('date','asc').limit(400),s=>{S.weights=rows(s)});
   watch('goals',mine('goals').limit(60),s=>{S.goals=rows(s)});
   watch('schedules',mine('schedules').limit(30),s=>{S.schedules=rows(s)});
+  watch('money',mine('money').limit(240),s=>{S.money=rows(s)});
   watch('diary',mine('diary').orderBy('date','desc').limit(60),s=>{S.diary=rows(s)});
   watchMyWeek();watchMenu();
 }
@@ -872,7 +874,7 @@ function draw(){
   $('#nav').hidden=false;
   const T=S.ui.tab,P=S.ui.page;
   let h;
-  if(P==='sfide')h=viewSfide();else if(P==='gruppo')h=viewGruppo();else if(P==='alimenti')h=viewFood();
+  if(P==='sfide')h=viewSfide();else if(P==='gruppo')h=viewGruppo();else if(P==='alimenti')h=viewFood();else if(P==='soldi')h=viewMoney();
   else h=({home:viewHome,work:viewWork,shop:viewShop,menu:viewMenu,me:viewProfile}[T]||viewHome)();
   const fa=document.activeElement,keep=fa&&fa.id&&fa.closest&&fa.closest('#view')?{id:fa.id,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   $('#view').innerHTML=h;
@@ -940,10 +942,7 @@ Object.assign(ACT,{
     if(!wasMember)await postFeed('join','');
     S.d=null;toast('Benvenuto!',1);
   },
-  cpost:(d,el)=>{const inp=el.tagName==='INPUT'?el:el.parentElement.querySelector('input');const t=(inp.value||'').trim();if(!t)return;inp.value='';return W(C('comments').add({target:d.t,uid,text:t.slice(0,400),ts:Date.now()}))},
-  cdel:d=>W(C('comments').doc(d.id).delete()),
-  like:async d=>{const id=d.t.replace(/[^A-Za-z0-9_-]/g,'_')+'~'+uid;const o=S.likeIdx[d.t];if(o&&o.me)await W(C('likes').doc(id).delete());else await W(C('likes').doc(id).set({target:d.t,uid,ts:Date.now()}))},
-  thread:d=>openThread(d.t,d.title||'Commenti')
+  like:async d=>{const id=d.t.replace(/[^A-Za-z0-9_-]/g,'_')+'~'+uid;const o=S.likeIdx[d.t];if(o&&o.me)await W(C('likes').doc(id).delete());else await W(C('likes').doc(id).set({target:d.t,uid,ts:Date.now()}))}
 });
 const newCode=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s};
 /* ===== SOCIAL: home, bacheca, gruppo, classifiche, sfide, badge, confronto ===== */
@@ -974,7 +973,8 @@ function viewHome(){
    <button class="tile" data-act="tab" data-t="shop">${ic('cart',22)}<span class="big">${left}</span><span class="small mute">${left===1?'prodotto da comprare':'prodotti da comprare'}</span></button>
    <button class="tile" data-act="tab" data-t="menu">${ic('fork',22)}<span class="big">${mealsDone}/5</span><span class="small mute">pasti pianificati oggi</span></button>
    <button class="tile" data-act="page" data-p="sfide">${ic('trophy',22)}<span class="big">${act}</span><span class="small mute">${act===1?'sfida in corso':'sfide in corso'}</span></button>
-   <button class="tile" data-act="page" data-p="sfide" data-seg="class">${ic('flame',22)}${miniRank()}</button></div>
+   <button class="tile" data-act="page" data-p="sfide" data-seg="class">${ic('flame',22)}${miniRank()}</button>
+   <button class="tile" data-act="page" data-p="soldi" style="grid-column:1/-1;flex-direction:row;align-items:center;gap:12px"><span style="font-size:24px">💰</span><span class="sp"><b>Risparmia</b><span class="small mute" style="display:block">Entrate, uscite e saldo: solo tuoi</span></span>${ic('right',18)}</button></div>
   <div class="seg" style="margin-top:22px"><button class="${S.ui.homeSeg==='att'?'on':''}" data-act="homeSeg" data-s="att">Attività recenti</button><button class="${S.ui.homeSeg==='bac'?'on':''}" data-act="homeSeg" data-s="bac">Bacheca</button></div>
   ${S.ui.homeSeg==='att'?(feed.length?`<div class="list">${feed.slice(0,20).map(feedCard).join('')}</div>`:`<div class="empty"><b>Ancora nessuna attività</b>Completa un allenamento o aggiungi qualcosa alla spesa: gli amici lo vedranno qui.</div>`):bacheca(notes)}`;
 }
@@ -984,7 +984,7 @@ function miniRank(){
   return `<span class="big">${me>=0?(me+1)+'°':'–'}</span><span class="small mute">in classifica questa settimana</span>`;
 }
 function feedCard(f){
-  const p=prof(f.uid),t='f:'+f.id,li=S.likeIdx[t]||{n:0,me:false},cn=S.comIdx[t]||0,n='<b>'+esc(p.nick)+'</b>',x=f.ex||{};
+  const p=prof(f.uid),t='f:'+f.id,li=S.likeIdx[t]||{n:0,me:false},n='<b>'+esc(p.nick)+'</b>',x=f.ex||{};
   let tx,meta='';
   switch(f.k){
    case 'workout':tx=`${n} ha completato <b>${esc(f.txt)}</b>`;meta=[x.cat&&CAT[x.cat],x.min&&hm(x.min),x.km&&nf(x.km)+' km',x.vol&&nf(x.vol/1000,1)+' t sollevate',x.n&&x.n+' esercizi'].filter(Boolean).map(c=>`<span class="chip">${esc(c)}</span>`).join('');break;
@@ -996,7 +996,7 @@ function feedCard(f){
    case 'goal':tx=`${n} ha raggiunto un obiettivo: <b>${esc(f.txt)}</b>`;break;
    case 'join':tx=`${n} è entrato nel gruppo`;break;
    default:tx=n}
-  return `<article class="post"><div class="row" style="align-items:flex-start">${avatar(p.avatar,40)}<div class="sp txt">${tx}<div class="tiny dim" style="margin-top:2px">${ago(f.ts)}${f.pin?' · fissato':''}</div></div>${f.uid===uid?`<button class="dim" data-act="feeddel" data-id="${f.id}" data-confirm="1" aria-label="Elimina">${ic('trash',17)}</button>`:''}</div>${meta?`<div class="meta">${meta}</div>`:''}<div class="acts"><button class="act ${li.me?'on':''}" data-act="like" data-t="${t}" aria-pressed="${li.me}">${ic('heart',17)}${li.n||'Mi piace'}</button><button class="act" data-act="thread" data-t="${t}" data-title="Commenti">${ic('chat',17)}${cn||'Commenta'}</button>${(isAdmin()&&f.k==='note')?`<button class="act" data-act="notepin" data-id="${f.id}" data-pin="${f.pin?'':'1'}">${f.pin?'Stacca':'Fissa'}</button>`:''}</div></article>`;
+  return `<article class="post"><div class="row" style="align-items:flex-start">${avatar(p.avatar,40)}<div class="sp txt">${tx}<div class="tiny dim" style="margin-top:2px">${ago(f.ts)}${f.pin?' · fissato':''}</div></div>${f.uid===uid?`<button class="dim" data-act="feeddel" data-id="${f.id}" data-confirm="1" aria-label="Elimina">${ic('trash',17)}</button>`:''}</div>${meta?`<div class="meta">${meta}</div>`:''}<div class="acts"><button class="act ${li.me?'on':''}" data-act="like" data-t="${t}" aria-pressed="${li.me}">${ic('heart',17)}${li.n||'Mi piace'}</button>${(isAdmin()&&f.k==='note')?`<button class="act" data-act="notepin" data-id="${f.id}" data-pin="${f.pin?'':'1'}">${f.pin?'Stacca':'Fissa'}</button>`:''}</div></article>`;
 }
 function bacheca(notes){
   notes=notes.slice().sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||b.ts-a.ts);
@@ -1053,9 +1053,9 @@ Object.assign(ACT,{
   leave:async()=>{const r=await sb.rpc('leave_group');if(r.error)return toast('Operazione non riuscita');location.reload()},
   prune:async()=>{const cut=Date.now()-60*86400000;let n=0;for(const f of S.feed){if(f.ts<cut&&!f.pin){await C('feed').doc(f.id).delete();n++}}toast(n+' attività eliminate',1)},
   backup:async()=>{toast('Preparo il backup…');const o={app:'FIT LIFE',kind:'gruppo',date:new Date().toISOString(),group:S.group,members:S.members,profiles:S.profiles,stats:S.stats};
-    for(const n of ['feed','comments','likes','shop','challenges'])o[n]=await snapAll(n);o.menus={};for(const u of Object.keys(S.members)){const s=await C('menus').doc(u).collection('weeks').get();o.menus[u]=s.docs.map(d=>Object.assign({week:d.id},d.data()))}
+    for(const n of ['feed','likes','shop','challenges'])o[n]=await snapAll(n);o.menus={};for(const u of Object.keys(S.members)){const s=await C('menus').doc(u).collection('weeks').get();o.menus[u]=s.docs.map(d=>Object.assign({week:d.id},d.data()))}
     await saveJSON('fitlife-gruppo-'+todayKey()+'.json',o)},
-  mybackup:async()=>{toast('Preparo i tuoi dati…');const o={app:'FIT LIFE',kind:'personale',date:new Date().toISOString(),me:S.me};for(const n of ['sessions','plans','exs','weights','goals','schedules','diary']){const s=await mine(n).get();o[n]=s.docs.map(d=>Object.assign({id:d.id},d.data()))}
+  mybackup:async()=>{toast('Preparo i tuoi dati…');const o={app:'FIT LIFE',kind:'personale',date:new Date().toISOString(),me:S.me};for(const n of ['sessions','plans','exs','weights','goals','schedules','diary','money']){const s=await mine(n).get();o[n]=s.docs.map(d=>Object.assign({id:d.id},d.data()))}
     const s=await C('menus').doc(uid).collection('weeks').get();o.menu=s.docs.map(d=>Object.assign({week:d.id},d.data()));await saveJSON('fitlife-miei-dati-'+todayKey()+'.json',o)}
 });
 
@@ -1098,7 +1098,7 @@ function openChallenge(id){
   openSheet(sheetHead(esc(c.title))+`<p class="mute" style="margin-bottom:10px">${esc(c.desc||'')}</p><div class="chips" style="margin-bottom:12px"><span class="chip">${fmtD(c.start)} → ${fmtD(c.end)}</span><span class="chip on">Obiettivo ${c.target} ${mt[0]}</span><span class="chip">${c.kind==='group'?'Tutti insieme':'Gara individuale'}</span></div>
   ${c.kind==='group'?`<div class="card flat" style="margin-bottom:12px"><div class="row small"><b>Progresso del gruppo</b><span class="sp"></span><b class="lime">${nf(p.tot,1)} / ${c.target}</b></div><div class="bar" style="margin-top:8px"><i style="width:${clamp(p.tot/c.target*100,0,100)}%"></i></div></div>`:''}
   <div class="list" style="margin-bottom:14px">${p.per.map((x,i)=>`<div class="rank ${x.u===uid?'me':''}"><div class="pos">${i+1}</div>${avatar(prof(x.u).avatar,36)}<b class="sp ellip">${esc(nick(x.u))}</b><div class="small"><b>${nf(x.v,1)}</b> ${mt[0]}</div>${x.v>=c.target?`<span class="lime">${ic('check',18)}</span>`:''}</div>`).join('')||'<p class="mute small">Nessun dato condiviso.</p>'}</div>
-  <div class="kicker" style="margin-bottom:8px">Commenti</div>${threadBox('c:'+c.id)}${can?`<button class="btn danger block" style="margin-top:14px" data-act="chdel" data-id="${c.id}" data-confirm="1">Elimina la sfida</button>`:''}`);
+  ${can?`<button class="btn danger block" style="margin-top:14px" data-act="chdel" data-id="${c.id}" data-confirm="1">Elimina la sfida</button>`:''}`);
 }
 function newChallenge(){
   S.d={title:'',desc:'',metric:'n',target:'',start:todayKey(),end:dkey(addDays(new Date(),6)),kind:'group'};
@@ -1398,14 +1398,14 @@ function viewShop(){
   ${groups.length?groups.map(([k,n,l])=>`<div class="cathead">${n}<span class="cnt">${l.filter(i=>!i.done).length}</span></div><div class="list">${l.map(shopRow).join('')}</div>`).join(''):`<div class="empty" style="margin-top:14px"><b>La lista è vuota</b>Aggiungi il primo prodotto: tutti gli amici lo vedono subito sul proprio telefono.</div>`}`;
 }
 function shopRow(i){
-  const by=i.by?nick(i.by):'',dby=i.doneBy?nick(i.doneBy):'',cc=S.comIdx['s:'+i.id]||0;
-  return `<div class="shopi ${i.done?'done':''}"><button class="check ${i.done?'on':''}" data-act="shoptog" data-id="${i.id}" aria-label="${i.done?'Segna da comprare':'Segna acquistato'}" aria-pressed="${!!i.done}">${ic('check',16)}</button><button class="sp" style="text-align:left;min-width:0" data-act="shopopen" data-id="${i.id}"><div class="nm ellip">${esc(i.n)}${i.q?` <span class="mute" style="font-weight:500">· ${esc(i.q)}</span>`:''}</div><div class="tiny mute ellip">${i.by?'Aggiunto da '+esc(by):''}${i.done&&dby?' · Preso da '+esc(dby):''}${i.note?' · '+esc(i.note):''}</div></button>${cc?`<span class="chip">${ic('chat',13)}${cc}</span>`:''}</div>`;
+  const by=i.by?nick(i.by):'',dby=i.doneBy?nick(i.doneBy):'';
+  return `<div class="shopi ${i.done?'done':''}"><button class="check ${i.done?'on':''}" data-act="shoptog" data-id="${i.id}" aria-label="${i.done?'Segna da comprare':'Segna acquistato'}" aria-pressed="${!!i.done}">${ic('check',16)}</button><button class="sp" style="text-align:left;min-width:0" data-act="shopopen" data-id="${i.id}"><div class="nm ellip">${esc(i.n)}${i.q?` <span class="mute" style="font-weight:500">· ${esc(i.q)}</span>`:''}</div><div class="tiny mute ellip">${i.by?'Aggiunto da '+esc(by):''}${i.done&&dby?' · Preso da '+esc(dby):''}${i.note?' · '+esc(i.note):''}</div></button></div>`;
 }
 function openShopItem(id){
   const i=S.shop.find(x=>x.id===id);if(!i)return;S.d={id,n:i.n,q:i.q||'',cat:i.cat||'other',note:i.note||''};
   openSheet(sheetHead('Prodotto')+`<div class="col"><label class="f">Nome<input data-b="d.n" value="${esc(i.n)}" maxlength="60"></label><div class="frow"><label class="f">Quantità<input data-b="d.q" value="${esc(i.q||'')}" maxlength="14" placeholder="Es. 2 kg"></label><label class="f">Categoria<select data-b="d.cat">${SHOPCATS.map(([k,n])=>`<option value="${k}" ${S.d.cat===k?'selected':''}>${n}</option>`).join('')}</select></label></div><label class="f">Nota<input data-b="d.note" value="${esc(i.note||'')}" maxlength="80" placeholder="Marca, formato, dove trovarlo…"></label>
   <div class="small mute">Aggiunto da <b style="color:var(--text)">${esc(nick(i.by))}</b> il ${fmtTs(i.at||Date.now())}${i.done?` · acquistato da <b style="color:var(--text)">${esc(nick(i.doneBy))}</b>`:''}</div>
-  <button class="btn block" data-act="shopsave">Salva</button><div class="kicker">Commenti sul prodotto</div>${threadBox('s:'+id)}<button class="btn danger block" data-act="shopdel" data-id="${id}" data-confirm="1">Elimina prodotto</button></div>`);
+  <button class="btn block" data-act="shopsave">Salva</button><button class="btn danger block" data-act="shopdel" data-id="${id}" data-confirm="1">Elimina prodotto</button></div>`);
 }
 async function addIngredients(list){
   let add=0,mrg=0;
@@ -1442,7 +1442,7 @@ function viewMenuWeek(){
   ${grp?`<div class="warn" style="margin-bottom:12px;color:var(--text);background:var(--lime-soft);border-color:var(--lime)"><b>Menu condiviso.</b> Tutti i membri del gruppo possono aggiungere e modificare i pasti.</div>`:''}${!own?`<div class="warn" style="margin-bottom:12px;color:var(--text);background:var(--s1);border-color:var(--line)">Stai guardando il menu di <b>${esc(nick(V.u))}</b>. Puoi commentare i pasti.</div>`:''}
   <div class="row" style="margin-bottom:14px;flex-wrap:wrap">${hasAny?`<button class="btn ghost sm" data-act="${own?'menuDup':'menuCopy'}" data-confirm="1">${ic('copy',15)}${own?'Duplica nella settimana dopo':'Copia nel mio menu'}</button>`:''}${(hasAny&&own)?`<button class="btn sm" data-act="menuShopWeek">${ic('cart',15)}Ingredienti → spesa</button>`:''}</div>
   ${!V.ready?'<div class="splash" style="min-height:30vh"><div class="pulse"></div></div>':`<div class="col">${DK.map((dk,i)=>{const dd=addDays(pdate(wk),i),isT=dkey(dd)===tk,m=dayMeals(doc,dk);let kc=0,pp=0,cc=0,ff=0;SLOTS.forEach(([s])=>{const x=m[s];if(mealOk(x)){kc+=+x.kcal||0;pp+=+x.p||0;cc+=+x.c||0;ff+=+x.f||0}});
-   return `<div class="day ${isT?'today':''}"><div class="dayhead"><b class="disp" style="font-size:19px">${DAYS[i]}</b><span class="tiny mute">${dd.getDate()} ${MESI3[dd.getMonth()]}</span><span class="sp"></span>${kc?`<span class="small"><b>${nf(kc,0)}</b> kcal</span>`:''}${pp||cc||ff?`<span class="tiny mute">P${nf(pp,0)} C${nf(cc,0)} G${nf(ff,0)}</span>`:''}</div>${SLOTS.map(([s,l])=>{const x=m[s],ok=mealOk(x),n=S.comIdx['m:'+V.u+':'+wk+':'+dk+':'+s]||0;return `<button class="slot ${ok?'':'blank'}" data-act="meal" data-dk="${dk}" data-s="${s}"><span class="sl">${l}</span><span class="sp t ellip">${ok?esc(x.t||'Pasto'):(own?'Aggiungi':'—')}</span>${ok&&x.kcal?`<span class="small mute">${nf(x.kcal,0)} kcal</span>`:''}${n?`<span class="chip">${ic('chat',12)}${n}</span>`:''}${own&&!ok?ic('plus',16):''}</button>`}).join('')}</div>`}).join('')}</div>`}
+   return `<div class="day ${isT?'today':''}"><div class="dayhead"><b class="disp" style="font-size:19px">${DAYS[i]}</b><span class="tiny mute">${dd.getDate()} ${MESI3[dd.getMonth()]}</span><span class="sp"></span>${kc?`<span class="small"><b>${nf(kc,0)}</b> kcal</span>`:''}${pp||cc||ff?`<span class="tiny mute">P${nf(pp,0)} C${nf(cc,0)} G${nf(ff,0)}</span>`:''}</div>${SLOTS.map(([s,l])=>{const x=m[s],ok=mealOk(x);return `<button class="slot ${ok?'':'blank'}" data-act="meal" data-dk="${dk}" data-s="${s}"><span class="sl">${l}</span><span class="sp t ellip">${ok?esc(x.t||'Pasto'):(own?'Aggiungi':'—')}</span>${ok&&x.kcal?`<span class="small mute">${nf(x.kcal,0)} kcal</span>`:''}${own&&!ok?ic('plus',16):''}</button>`}).join('')}</div>`}).join('')}</div>`}
   <p class="small mute" style="margin-top:12px">Calorie e macronutrienti (P proteine, C carboidrati, G grassi) sono facoltativi: inseriscili quando li conosci.</p>`;
 }
 const mealTarget=(dk,s)=>'m:'+S.viewMenu.u+':'+S.ui.menuWk+':'+dk+':'+s;
@@ -1452,7 +1452,7 @@ function openMeal(dk,s){
   const head=sheetHead(`${lab} · ${DAYS[idx]}`);
   if(!own){
     if(!ok)return toast('Nessun pasto inserito');
-    return openSheet(head+`<h2 style="margin-bottom:8px">${esc(m.t)}</h2><div class="list" style="margin-bottom:12px">${(m.items||[]).map(i=>`<div class="item"><b class="sp">${esc(i.n)}</b><span class="mute">${esc(i.q)} ${esc(i.u||'')}</span></div>`).join('')}</div>${m.kcal?`<div class="grid3" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${[['kcal',m.kcal],['Prot.',m.p],['Carb.',m.c],['Grassi',m.f]].map(([l,v])=>`<div class="stat"><div class="v" style="font-size:20px">${v||'–'}</div><div class="l">${l}</div></div>`).join('')}</div>`:''}<div class="kicker" style="margin-bottom:8px">Commenti</div>${threadBox(mealTarget(dk,s))}`);
+    return openSheet(head+`<h2 style="margin-bottom:8px">${esc(m.t)}</h2><div class="list" style="margin-bottom:12px">${(m.items||[]).map(i=>`<div class="item"><b class="sp">${esc(i.n)}</b><span class="mute">${esc(i.q)} ${esc(i.u||'')}</span></div>`).join('')}</div>${m.kcal?`<div class="grid3" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">${[['kcal',m.kcal],['Prot.',m.p],['Carb.',m.c],['Grassi',m.f]].map(([l,v])=>`<div class="stat"><div class="v" style="font-size:20px">${v||'–'}</div><div class="l">${l}</div></div>`).join('')}</div>`:''}`);
   }
   mealEditor(head);
 }
@@ -1463,7 +1463,7 @@ function mealEditor(head){
   <div class="kicker">Ingredienti e quantità</div>${D.items.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 74px 40px;gap:6px"><input data-b="d.items.${i}.n" data-ev="sugq" data-sug="sug${i}" data-k="meal" data-i="${i}" autocomplete="off" value="${esc(it.n)}" placeholder="Cerca o scrivi…" aria-label="Ingrediente ${i+1}"><input data-b="d.items.${i}.q" value="${esc(it.q)}" inputmode="decimal" placeholder="Qtà" aria-label="Quantità"><select data-b="d.items.${i}.u" aria-label="Unità">${['g','ml','pz','kg','l','cucchiai'].map(u=>`<option ${it.u===u?'selected':''}>${u}</option>`).join('')}</select><button class="ibtn sm" style="height:46px" data-act="mitdel" data-i="${i}" aria-label="Rimuovi ingrediente">${ic('x',16)}</button></div><div class="sug" id="sug${i}"></div>`).join('')}
   <button class="btn block" data-act="mpick">${ic('leaf',18)}Scegli alimento dalla lista</button><button class="btn ghost sm" style="align-self:flex-start" data-act="mitadd">${ic('plus',15)}Ingrediente a mano</button>
   <div class="kicker">Valori nutrizionali</div><p class="tiny mute" style="margin-top:-6px">Si calcolano da soli se scegli gli ingredienti dalla lista e li indichi in g, kg o ml. Puoi anche scriverli a mano.</p><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><label class="f">kcal<input data-b="d.kcal" value="${esc(D.kcal)}" inputmode="decimal"></label><label class="f">Prot.<input data-b="d.p" value="${esc(D.p)}" inputmode="decimal"></label><label class="f">Carb.<input data-b="d.c" value="${esc(D.c)}" inputmode="decimal"></label><label class="f">Grassi<input data-b="d.f" value="${esc(D.f)}" inputmode="decimal"></label></div>
-  <p id="mnote" class="tiny lime"></p><button class="btn block" data-act="mealsave">Salva pasto</button>${ok?`<button class="btn ghost block" data-act="mealshop">${ic('cart',18)}Aggiungi ingredienti alla spesa</button><div class="kicker">Commenti</div>${threadBox(mealTarget(dk,s))}<button class="btn danger block" data-act="mealdel" data-confirm="1">Elimina pasto</button>`:''}</div>`);
+  <p id="mnote" class="tiny lime"></p><button class="btn block" data-act="mealsave">Salva pasto</button>${ok?`<button class="btn ghost block" data-act="mealshop">${ic('cart',18)}Aggiungi ingredienti alla spesa</button><button class="btn danger block" data-act="mealdel" data-confirm="1">Elimina pasto</button>`:''}</div>`);
 }
 const cleanMeal=D=>({t:(D.t||'').trim(),items:(D.items||[]).filter(i=>(i.n||'').trim()).map(i=>({n:i.n.trim(),q:String(i.q||'').trim(),u:i.u||'g'})),kcal:numv(D.kcal)||0,p:numv(D.p)||0,c:numv(D.c)||0,f:numv(D.f)||0});
 const myWeekRef=wk=>C('menus').doc(S.viewMenu&&S.viewMenu.u||uid).collection('weeks').doc(wk);
@@ -1499,6 +1499,7 @@ function viewProfile(){
   <div class="sec"><h2>Le mie statistiche</h2></div><div class="grid2"><div class="stat"><div class="v">${st.t.n}</div><div class="l">Allenamenti completati</div></div><div class="stat"><div class="v">${nf(st.t.min/60,1)}</div><div class="l">Ore di allenamento</div></div><div class="stat"><div class="v">${nf(st.t.km,1)}</div><div class="l">Chilometri percorsi</div></div><div class="stat"><div class="v">${ach}</div><div class="l">Obiettivi raggiunti</div></div></div>
   <div class="card" style="margin-top:10px"><div class="kicker" style="margin-bottom:6px">Allenamenti per settimana</div>${barChart(vals,labs,320,120,7)}</div>
   <div class="sec"><h2>Peso</h2></div><div class="card col"><div class="row"><div class="sp"><div class="disp" style="font-size:38px;font-weight:800;line-height:1">${wl?nf(wl.kg,1):(m.weight||'–')}<span class="mute" style="font-size:18px"> kg</span></div>${wl&&w0&&w.length>1?`<div class="small mute">${wl.kg-w0.kg>0?'+':''}${nf(wl.kg-w0.kg,1)} kg dal ${fmtD(w0.date)}</div>`:''}</div></div>${lineChart(w.slice(-40).map(x=>[x.date,x.kg]))}<div class="row"><input id="wkg" data-enter="addweight" inputmode="decimal" placeholder="Peso di oggi (kg)" aria-label="Peso di oggi"><button class="btn" data-act="addweight">Registra</button></div>${wl?`<button class="btn ghost sm" style="align-self:flex-start" data-act="delweight" data-id="${wl.id}" data-confirm="1">Elimina ultima misura</button>`:''}<p class="tiny dim">Il peso è privato: lo vedono gli altri solo se lo attivi nelle impostazioni di privacy. Non conta mai in classifica.</p></div>
+  <button class="item" data-act="page" data-p="soldi" style="margin-top:14px"><span style="font-size:22px">💰</span><div class="sp"><b>Risparmia</b><div class="tiny mute">Entrate, uscite, conti e budget</div></div>${ic('right',18)}</button>
   ${nutriHTML()}
   <div class="sec"><h2>Calendario</h2></div><div class="card"><div class="row" style="margin-bottom:10px"><button class="ibtn sm" data-act="calM" data-n="-1" aria-label="Mese precedente">${ic('left',16)}</button><div class="sp disp" style="text-align:center;font-size:18px;font-weight:700">${MESI[cm.getMonth()]} ${cm.getFullYear()}</div><button class="ibtn sm" data-act="calM" data-n="1" aria-label="Mese successivo">${ic('right',16)}</button></div>${calendarHTML(cm,marks,{act:'calday'})}${sel?`<div class="hr"></div><div class="kicker" style="margin-bottom:8px">${fmtD(sel)}</div>${sday.length?`<div class="list">${sday.map(sessRow).join('')}</div>`:'<p class="small mute">Nessun allenamento registrato.</p>'}`:''}</div>
   <div class="sec"><h2>Obiettivi</h2><button class="lnk" data-act="newgoal">+ Nuovo</button></div>${S.goals.length?`<div class="list">${S.goals.map(goalRow).join('')}</div>`:`<div class="empty small"><b>Nessun obiettivo personale</b>Es. 3 allenamenti a settimana o 40 km al mese.</div>`}
@@ -2075,6 +2076,115 @@ Object.assign(ACT,{
 });
 
 Object.assign(ACT,{mpick:()=>{S.pk={m:'meal',s:S.mk.s,date:'',q:'',sel:null,g:100,man:false};openSheet(pkBody(),{back:()=>mealEditor()})}});
+/* ===== Risparmia: entrate, uscite, conti, ricorrenti e budget (dati privati) ===== */
+const FOUT=[['casa','Casa','🏠'],['spesa','Spesa','🛒'],['rist','Ristoranti','🍽️'],['trasp','Trasporti','🚌'],['auto','Auto','🚗'],['salute','Salute','💊'],['sport','Sport','🏋️'],['svago','Svago','🎬'],['shop','Shopping','🛍️'],['abb','Abbonamenti','📱'],['viaggi','Viaggi','✈️'],['istr','Istruzione','📚'],['regali','Regali','🎁'],['altro','Altro','•']];
+const FIN=[['stip','Stipendio','💼'],['extra','Extra','⭐'],['regali','Regali','🎁'],['rimb','Rimborsi','↩️'],['altro','Altro','•']];
+const MESIL=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const eur=n=>(Math.round((+n||0)*100)/100).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+const eur0=n=>(Math.round(+n||0)).toLocaleString('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const MC=()=>(S.me&&S.me.money)||{};
+const mAccs=()=>MC().acc||[];
+const monthDoc=m=>(S.money||[]).find(x=>x.id===m)||{id:m,tx:[],skip:[]};
+const allTx=()=>[].concat(...(S.money||[]).map(d=>d.tx||[]));
+const mTx=m=>monthDoc(m).tx||[];
+const catOf=(k,c)=>(k==='in'?FIN:FOUT).find(x=>x[0]===c)||['altro','Altro','•'];
+const monthShift=(m,n)=>{const [y,mo]=m.split('-').map(Number),d=new Date(y,mo-1+n,1);return d.getFullYear()+'-'+pad(d.getMonth()+1)};
+function accBal(id){const a=mAccs().find(x=>x.id===id);if(!a)return 0;let b=+a.s||0,t=todayKey();allTx().forEach(x=>{if(x.d>t)return;if(x.k==='in'&&x.ac===id)b+=x.a;else if(x.k==='out'&&x.ac===id)b-=x.a;else if(x.k==='tr'){if(x.ac===id)b-=x.a;if(x.to===id)b+=x.a}});return b}
+function mSum(m){let i=0,o=0;const cat={};mTx(m).forEach(x=>{if(x.k==='in')i+=x.a;else if(x.k==='out'){o+=x.a;cat[x.c]=(cat[x.c]||0)+x.a}});return {i,o,cat}}
+async function saveMoney(mut){const mo=JSON.parse(JSON.stringify(MC()));mut(mo);return W(meDoc().set(Object.assign({},S.me,{money:mo})))}
+async function saveMonth(m,fn){const d=monthDoc(m),tx=(d.tx||[]).slice(),skip=(d.skip||[]).slice(),o={tx,skip};fn(o);return W(mine('money').doc(m).set({tx:o.tx,skip:o.skip}))}
+
+/* ricorrenti: genera da sole le voci dei mesi passati e di oggi */
+async function genRec(){
+  const R=MC().rec||[];if(!R.length||!S.loaded.money)return;
+  const t=todayKey(),cur=t.slice(0,7),sig=R.map(r=>r.id+r.from+r.day).join()+'|'+t;if(S.mgen===sig)return;S.mgen=sig;
+  const add={};
+  R.forEach(r=>{for(let m=r.from;m<=cur;m=monthShift(m,1)){const [y,mo]=m.split('-').map(Number),dim=new Date(y,mo,0).getDate(),d=m+'-'+pad(Math.min(r.day,dim));if(d>t)continue;const id='r'+r.id+'_'+m,doc=monthDoc(m);if((doc.tx||[]).some(x=>x.id===id)||(doc.skip||[]).includes(id))continue;(add[m]=add[m]||[]).push({id,d,k:r.k,a:r.a,c:r.c,n:r.n,ac:r.ac,rec:1})}});
+  for(const m of Object.keys(add)){const d=monthDoc(m);await W(mine('money').doc(m).set({tx:(d.tx||[]).concat(add[m]),skip:d.skip||[]}))}
+}
+
+/* ---------- vista ---------- */
+function viewMoney(){
+  if(!S.d)S.d={};
+  const m=S.ui.mMonth||(S.ui.mMonth=todayKey().slice(0,7)),C=MC(),accs=mAccs();
+  if(!S.loaded.money)return `${pageHead('Finanze','Risparmia',true)}<div class="splash" style="min-height:30vh"><div class="pulse"></div></div>`;
+  if(!accs.length)return `${pageHead('Finanze','Risparmia',true)}<div class="card col"><h2>Iniziamo</h2><p class="mute small">Inserisci quanti soldi hai adesso. Poi ogni entrata e uscita aggiorna il saldo da sola. I dati sono solo tuoi: nessun amico li vede.</p><label class="f">Nome del conto<input data-b="d.an" value="${esc(S.d.an!=null?S.d.an:'Conto principale')}" maxlength="30"></label><label class="f">Saldo attuale (€)<input data-b="d.ab" value="${esc(S.d.ab||'')}" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></label><button class="btn" data-act="macc0">Inizia</button></div>`;
+  setTimeout(genRec,0);
+  const tot=accs.reduce((s,a)=>s+accBal(a.id),0),sm=mSum(m),net=sm.i-sm.o,[y,mo]=m.split('-').map(Number),isCur=m===todayKey().slice(0,7);
+  const pctSp=sm.i?Math.min(100,sm.o/sm.i*100):(sm.o?100:0),cats=Object.entries(sm.cat).sort((a,b)=>b[1]-a[1]),bud=C.bud||{};
+  const flt=S.ui.mFlt||'all',L=mTx(m).filter(x=>flt==='all'||x.k===flt).slice().sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);
+  const byDay={};L.forEach(x=>(byDay[x.d]=byDay[x.d]||[]).push(x));
+  const mons=[];for(let i=5;i>=0;i--)mons.push(monthShift(m,-i));const MS=mons.map(x=>[x,mSum(x)]),mxv=Math.max(1,...MS.map(x=>Math.max(x[1].i,x[1].o)));
+  const rec=C.rec||[];
+  return `${pageHead('Finanze','Risparmia',true)}
+  <div class="actcard"><div><div class="kicker">Saldo totale</div><div class="bigk num" style="font-size:46px">${eur(tot)}</div></div>
+  <div class="hscroll" style="gap:8px">${accs.map(a=>`<button class="fmacc" data-act="maccs"><span class="tiny mute">${esc(a.n)}</span><b class="num">${eur(accBal(a.id))}</b></button>`).join('')}<button class="fmacc" data-act="maccs" style="align-items:center;justify-content:center">${ic('plus',18)}</button></div></div>
+  <div class="grid3" style="margin-top:12px"><button class="btn" data-act="txnew" data-k="out">${ic('plus',16)}Uscita</button><button class="btn ghost" data-act="txnew" data-k="in">${ic('plus',16)}Entrata</button><button class="btn ghost" data-act="txnew" data-k="tr">⇄ Giro</button></div>
+  <div class="row" style="margin:18px 0 12px"><button class="ibtn" data-act="mmon" data-n="-1" aria-label="Mese precedente">${ic('left')}</button><div class="sp" style="text-align:center"><div class="disp" style="font-size:22px;font-weight:700">${MESIL[mo-1]} ${y}</div>${isCur?'':`<button class="lnk tiny" data-act="mmon" data-n="0">Torna a questo mese</button>`}</div><button class="ibtn" data-act="mmon" data-n="1" aria-label="Mese successivo">${ic('right')}</button></div>
+  <div class="card col" style="gap:12px"><div class="grid3"><div class="mbox"><b class="fm-in" style="font-size:19px">${eur0(sm.i)}</b><span>Entrate</span></div><div class="mbox"><b class="fm-out" style="font-size:19px">${eur0(sm.o)}</b><span>Uscite</span></div><div class="mbox"><b style="font-size:19px;color:${net>=0?'#30d158':'#ff453a'}">${net>=0?'+':'−'}${eur0(Math.abs(net))}</b><span>Risparmio</span></div></div>
+  <div class="nrow"><div class="row"><span class="small mute sp">${sm.i?`Hai speso il ${nf(pctSp,0)}% delle entrate`:sm.o?'Nessuna entrata registrata':'Nessun movimento'}</span>${sm.i&&net>0?`<span class="small" style="color:#30d158">risparmi ${nf(net/sm.i*100,0)}%</span>`:''}</div><div class="nbar"><i style="width:${pctSp}%;background:${pctSp>=100?'#ff453a':'var(--lime)'}"></i></div></div></div>
+  <div class="sec"><h2>Dove vanno i soldi</h2><button class="lnk" data-act="mbud">Budget</button></div>
+  <div class="card col" style="gap:12px">${cats.length?cats.map(([c,v])=>{const ct=catOf('out',c),b=+bud[c]||0,p=b?Math.min(100,v/b*100):sm.o?v/sm.o*100:0;return `<div class="nrow"><div class="row"><span class="sp"><b>${ct[2]} ${ct[1]}</b></span><span class="num"><b>${eur(v)}</b>${b?`<span class="mute small"> / ${eur0(b)}</span>`:`<span class="mute small"> ${nf(v/sm.o*100,0)}%</span>`}</span></div><div class="nbar"><i style="width:${p}%;background:${b&&v>b?'#ff453a':b&&v>b*.8?'var(--amber)':'var(--lime)'}"></i></div></div>`}).join(''):`<p class="mute small">Nessuna spesa questo mese.</p>`}</div>
+  <div class="sec"><h2>Ultimi 6 mesi</h2></div><div class="card"><div class="fmbars">${MS.map(([x,s])=>`<button class="fmb" data-act="mjump" data-m="${x}"><span class="fmpair"><i style="height:${s.i/mxv*100}%;background:#30d158"></i><i style="height:${s.o/mxv*100}%;background:#ff453a"></i></span><span class="wd ${x===m?'fmsel':''}">${MESIL[+x.slice(5)-1].slice(0,3)}</span></button>`).join('')}</div><div class="row small mute" style="gap:14px;margin-top:8px"><span><span class="fm-in">●</span> Entrate</span><span><span class="fm-out">●</span> Uscite</span></div></div>
+  <div class="sec"><h2>Movimenti</h2></div>
+  <div class="hscroll" style="gap:6px;margin-bottom:10px">${[['all','Tutti'],['in','Entrate'],['out','Uscite'],['tr','Giroconti']].map(([k,l])=>`<button class="chip ${flt===k?'on':''}" data-act="mflt" data-f="${k}">${l}</button>`).join('')}</div>
+  ${L.length?Object.keys(byDay).map(d=>{const dd=pdate(d);return `<div class="kicker" style="margin:12px 0 6px">${DAYS[(dd.getDay()+6)%7]} ${dd.getDate()} ${MESI3[dd.getMonth()]}${d>todayKey()?' · previsto':''}</div><div class="list">${byDay[d].map(x=>{const ct=x.k==='tr'?['tr','Giroconto','⇄']:catOf(x.k,x.c),ac=(mAccs().find(a=>a.id===x.ac)||{}).n||'',to=(mAccs().find(a=>a.id===x.to)||{}).n||'';return `<button class="item" data-act="txopen" data-id="${esc(x.id)}"><span class="fmem">${ct[2]}</span><div class="sp"><b>${esc(x.n||ct[1])}</b><div class="tiny mute">${x.n?ct[1]+' · ':''}${esc(ac)}${x.k==='tr'?' → '+esc(to):''}${x.rec?' · ricorrente':''}</div></div><b class="num ${x.k==='in'?'fm-in':x.k==='out'?'fm-out':''}">${x.k==='in'?'+':x.k==='out'?'−':''}${eur(x.a)}</b></button>`}).join('')}</div>`}).join(''):`<div class="empty"><b>Nessun movimento</b>Tocca "Uscita" o "Entrata" per aggiungerne uno.</div>`}
+  <div class="sec"><h2>Ricorrenti</h2></div><div class="card col" style="gap:8px"><p class="small mute">Stipendio, affitto, abbonamenti: li inserisci una volta e si registrano da soli ogni mese.</p>${rec.map(r=>{const ct=catOf(r.k,r.c);return `<div class="row"><span class="fmem">${ct[2]}</span><div class="sp"><b>${esc(r.n)}</b><div class="tiny mute">il ${r.day} di ogni mese</div></div><b class="num ${r.k==='in'?'fm-in':'fm-out'}">${r.k==='in'?'+':'−'}${eur(r.a)}</b><button class="ibtn sm" data-act="mrecdel" data-id="${r.id}" data-confirm="1" aria-label="Elimina">${ic('trash',16)}</button></div>`}).join('')}<button class="btn ghost" data-act="mrecnew">${ic('plus',16)}Aggiungi ricorrente</button></div>
+  <p class="tiny dim" style="margin-top:14px">Questi dati sono privati: li vedi solo tu e non compaiono in nessuna altra parte dell'app. Il saldo conta i movimenti fino a oggi.</p>`;
+}
+
+/* ---------- inserimento e modifica movimento ---------- */
+function txBody(){
+  const D=S.d,accs=mAccs(),cats=D.k==='in'?FIN:FOUT,ed=!!D.id;
+  const chips=(sel,act,key)=>`<div class="hscroll" style="gap:6px">${accs.map(a=>`<button class="chip ${sel===a.id?'on':''}" data-act="${act}" data-a="${a.id}">${esc(a.n)}</button>`).join('')}</div>`;
+  return sheetHead(ed?'Modifica movimento':D.k==='in'?'Nuova entrata':D.k==='tr'?'Giroconto':'Nuova uscita')+`<div class="col" style="gap:12px">
+  ${ed?'':`<div class="seg" style="margin-bottom:0">${[['out','Uscita'],['in','Entrata'],['tr','Giroconto']].map(([k,l])=>`<button class="${D.k===k?'on':''}" data-act="txk" data-k="${k}">${l}</button>`).join('')}</div>`}
+  <label class="f">Importo (€)<input class="fmamt" data-b="d.a" value="${esc(D.a)}" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" step="0.01"></label>
+  ${D.k==='tr'?`<div><div class="kicker" style="margin-bottom:6px">Da</div>${chips(D.ac,'txa')}</div><div><div class="kicker" style="margin-bottom:6px">A</div>${chips(D.to,'txto')}</div>`
+  :`<div><div class="kicker" style="margin-bottom:6px">Categoria</div><div class="fmcats">${cats.map(c=>`<button class="fmcat ${D.c===c[0]?'on':''}" data-act="txc" data-c="${c[0]}"><span>${c[2]}</span>${c[1]}</button>`).join('')}</div></div><div><div class="kicker" style="margin-bottom:6px">Conto</div>${chips(D.ac,'txa')}</div>`}
+  <div class="frow"><label class="f">Data<input data-b="d.d" type="date" value="${esc(D.d)}"></label><label class="f">Nota (facoltativa)<input data-b="d.n" value="${esc(D.n)}" maxlength="60" placeholder="es. Cena con amici"></label></div>
+  <button class="btn" data-act="txsave">${ic('check',18)}Salva</button>${ed?`<button class="btn danger" data-act="txdel" data-confirm="1">${ic('trash',16)}Elimina</button>`:''}</div>`;
+}
+const reTx=()=>{openSheet(txBody())};
+Object.assign(ACT,{
+  mmon:d=>{const n=+d.n;S.ui.mMonth=n===0?todayKey().slice(0,7):monthShift(S.ui.mMonth||todayKey().slice(0,7),n);render()},
+  mjump:d=>{S.ui.mMonth=d.m;render()},
+  mflt:d=>{S.ui.mFlt=d.f;render()},
+  macc0:async()=>{const n=(S.d.an!=null?S.d.an:'Conto principale').trim()||'Conto',b=numv(S.d.ab)||0;if(await saveMoney(mo=>{mo.acc=[{id:gid(),n,s:b}]}))toast('Conto creato',1)},
+  txnew:d=>{const a=mAccs();S.d={k:d.k,a:'',c:d.k==='in'?'stip':'altro',n:'',d:(S.ui.mMonth&&S.ui.mMonth!==todayKey().slice(0,7)?S.ui.mMonth+'-01':todayKey()),ac:S.ui.mAcc&&a.some(x=>x.id===S.ui.mAcc)?S.ui.mAcc:a[0].id,to:(a[1]||a[0]).id};reTx();setTimeout(()=>{const e=document.querySelector('.fmamt');if(e)e.focus()},350)},
+  txopen:d=>{const x=allTx().find(t=>t.id===d.id);if(!x)return;S.d={id:x.id,k:x.k,a:String(x.a),c:x.c||'altro',n:x.n||'',d:x.d,ac:x.ac,to:x.to||x.ac,rec:x.rec,old:x.d.slice(0,7)};reTx()},
+  txk:d=>{S.d.k=d.k;if(d.k==='in'&&!FIN.some(c=>c[0]===S.d.c))S.d.c='stip';if(d.k==='out'&&!FOUT.some(c=>c[0]===S.d.c))S.d.c='altro';if(d.k==='tr'&&S.d.to===S.d.ac){const a=mAccs();S.d.to=(a.find(x=>x.id!==S.d.ac)||a[0]).id}reTx()},
+  txc:d=>{S.d.c=d.c;reTx()},txa:d=>{S.d.ac=d.a;S.ui.mAcc=d.a;reTx()},txto:d=>{S.d.to=d.a;reTx()},
+  txsave:async()=>{const D=S.d,a=numv(D.a);if(!a||a<=0)return toast('Inserisci un importo');if(a>1e9)return toast('Importo troppo alto');if(!/^\d{4}-\d{2}-\d{2}$/.test(D.d||''))return toast('Scegli la data');
+    if(D.k==='tr'&&D.ac===D.to)return toast('Scegli due conti diversi');
+    const tx={id:D.id||gid(),d:D.d,k:D.k,a:Math.round(a*100)/100,c:D.k==='tr'?'':D.c,n:(D.n||'').trim(),ac:D.ac};if(D.k==='tr')tx.to=D.to;if(D.rec)tx.rec=1;
+    const nm=D.d.slice(0,7);
+    if(D.old&&D.old!==nm){if(!await saveMonth(D.old,o=>{o.tx=o.tx.filter(x=>x.id!==tx.id)}))return}
+    if(!await saveMonth(nm,o=>{const i=o.tx.findIndex(x=>x.id===tx.id);if(i>=0)o.tx[i]=tx;else o.tx.push(tx)}))return;
+    S.ui.mMonth=nm;closeSheet();toast('Salvato',1)},
+  txdel:async()=>{const D=S.d;if(!D.id)return;const m=D.old||D.d.slice(0,7);if(await saveMonth(m,o=>{o.tx=o.tx.filter(x=>x.id!==D.id);if(D.rec&&!o.skip.includes(D.id))o.skip.push(D.id)}))closeSheet()},
+  /* conti */
+  maccs:()=>{S.d={acc:JSON.parse(JSON.stringify(mAccs()))};accSheet()},
+  maccadd:()=>{S.d.acc.push({id:gid(),n:'',s:0});accSheet()},
+  maccdel:d=>{const a=S.d.acc[+d.i];if(allTx().some(x=>x.ac===a.id||x.to===a.id))return toast('Ha già dei movimenti: non si può eliminare');if(S.d.acc.length<2)return toast('Serve almeno un conto');S.d.acc.splice(+d.i,1);accSheet()},
+  maccsave:async()=>{const L=S.d.acc.map(a=>({id:a.id,n:(a.n||'').trim(),s:numv(a.s)||0}));if(L.some(a=>!a.n))return toast('Dai un nome a ogni conto');if(await saveMoney(mo=>{mo.acc=L}))closeSheet()},
+  /* ricorrenti */
+  mrecnew:()=>{const a=mAccs();S.d={r:{k:'out',n:'',a:'',c:'casa',ac:a[0].id,day:String(new Date().getDate())}};recSheet()},
+  mrk:d=>{S.d.r.k=d.k;S.d.r.c=d.k==='in'?'stip':'casa';recSheet()},mrc:d=>{S.d.r.c=d.c;recSheet()},mra:d=>{S.d.r.ac=d.a;recSheet()},
+  mrsave:async()=>{const r=S.d.r,a=numv(r.a),dy=Math.round(numv(r.day)||0);if(!(r.n||'').trim())return toast('Scrivi un nome');if(!a||a<=0)return toast('Inserisci un importo');if(dy<1||dy>31)return toast('Giorno del mese da 1 a 31');
+    const R={id:gid(),k:r.k,n:r.n.trim(),a:Math.round(a*100)/100,c:r.c,ac:r.ac,day:dy,from:todayKey().slice(0,7)};if(await saveMoney(mo=>{(mo.rec=mo.rec||[]).push(R)})){S.mgen='';closeSheet();toast('Ricorrente aggiunto',1)}},
+  mrecdel:async d=>{await saveMoney(mo=>{mo.rec=(mo.rec||[]).filter(r=>r.id!==d.id)})},
+  /* budget */
+  mbud:()=>{const b=MC().bud||{};S.d={bud:{}};FOUT.forEach(c=>{S.d.bud[c[0]]=b[c[0]]||''});openSheet(sheetHead('Budget mensile')+`<div class="col" style="gap:8px"><p class="small mute">Imposta quanto vuoi spendere al massimo ogni mese per categoria. Lascia vuoto per nessun limite: ti avviso con il colore quando ti avvicini.</p>${FOUT.map(c=>`<label class="row"><span class="sp">${c[2]} ${c[1]}</span><input style="width:110px;text-align:right" data-b="d.bud.${c[0]}" value="${esc(S.d.bud[c[0]])}" type="text" inputmode="decimal" autocomplete="off" placeholder="—"></label>`).join('')}<button class="btn" data-act="mbudsave">Salva</button></div>`)},
+  mbudsave:async()=>{const o={};FOUT.forEach(c=>{const v=numv(S.d.bud[c[0]]);if(v&&v>0)o[c[0]]=Math.round(v)});if(await saveMoney(mo=>{mo.bud=o}))closeSheet()}
+});
+function accSheet(){openSheet(sheetHead('I tuoi conti')+`<div class="col" style="gap:10px"><p class="small mute">Il saldo iniziale è quanto avevi sul conto quando hai cominciato. Poi si aggiorna con i movimenti.</p>${S.d.acc.map((a,i)=>`<div style="display:grid;grid-template-columns:1fr 100px 40px;gap:6px"><input data-b="d.acc.${i}.n" value="${esc(a.n)}" maxlength="30" placeholder="Nome conto" aria-label="Nome conto"><input data-b="d.acc.${i}.s" value="${esc(a.s)}" type="text" inputmode="decimal" autocomplete="off" placeholder="Saldo iniziale" aria-label="Saldo iniziale"><button class="ibtn sm" data-act="maccdel" data-i="${i}" aria-label="Elimina">${ic('x',16)}</button></div>`).join('')}<button class="btn ghost sm" style="align-self:flex-start" data-act="maccadd">${ic('plus',15)}Conto</button><button class="btn" data-act="maccsave">Salva</button></div>`)}
+function recSheet(){const r=S.d.r,accs=mAccs(),cats=r.k==='in'?FIN:FOUT;openSheet(sheetHead('Movimento ricorrente')+`<div class="col" style="gap:12px"><div class="seg" style="margin-bottom:0">${[['out','Uscita'],['in','Entrata']].map(([k,l])=>`<button class="${r.k===k?'on':''}" data-act="mrk" data-k="${k}">${l}</button>`).join('')}</div>
+<label class="f">Nome<input data-b="d.r.n" value="${esc(r.n)}" maxlength="40" placeholder="es. Affitto, Stipendio, Netflix"></label>
+<div class="frow"><label class="f">Importo (€)<input data-b="d.r.a" value="${esc(r.a)}" type="text" inputmode="decimal" autocomplete="off" step="0.01"></label><label class="f">Giorno del mese<input data-b="d.r.day" value="${esc(r.day)}" type="text" inputmode="numeric" maxlength="2"></label></div>
+<div><div class="kicker" style="margin-bottom:6px">Categoria</div><div class="fmcats">${cats.map(c=>`<button class="fmcat ${r.c===c[0]?'on':''}" data-act="mrc" data-c="${c[0]}"><span>${c[2]}</span>${c[1]}</button>`).join('')}</div></div>
+<div><div class="kicker" style="margin-bottom:6px">Conto</div><div class="hscroll" style="gap:6px">${accs.map(a=>`<button class="chip ${r.ac===a.id?'on':''}" data-act="mra" data-a="${a.id}">${esc(a.n)}</button>`).join('')}</div></div>
+<p class="tiny mute">Si registra da questo mese, il giorno indicato (se il mese è più corto, l'ultimo giorno).</p><button class="btn" data-act="mrsave">${ic('check',18)}Aggiungi</button></div>`)}
 /* ===== AVVIO ===== */
 let started=false;
 async function refreshStatus(){const r=await sb.rpc('my_status');if(r.error||!r.data){console.error(r.error);S.fatal='db';return}S.status=r.data;S.canEdit=!!r.data.admin}
